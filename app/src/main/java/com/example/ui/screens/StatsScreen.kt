@@ -1,5 +1,15 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -13,12 +23,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
@@ -27,6 +40,7 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timeline
@@ -34,6 +48,7 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -48,6 +63,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -565,6 +581,32 @@ fun PaceCurveChartCard(
     }
 }
 
+private data class SavedLapItem(
+    val lapNumber: Int,
+    val splitTime: String,
+    val totalTime: String
+)
+
+private fun parseSavedLaps(lapsData: String): List<SavedLapItem> {
+    if (lapsData.isBlank()) return emptyList()
+    val regex = Regex("""Lap\s+(\d+):\s*([^\s(]+)(?:\s*\(Total:\s*([^)]+)\))?""", RegexOption.IGNORE_CASE)
+    val result = mutableListOf<SavedLapItem>()
+    for (line in lapsData.lines()) {
+        val trimmed = line.trim()
+        if (trimmed.isEmpty()) continue
+        val match = regex.find(trimmed)
+        if (match != null) {
+            val num = match.groupValues[1].toIntOrNull() ?: 0
+            val split = match.groupValues[2]
+            val total = match.groupValues[3].ifEmpty { split }
+            result.add(SavedLapItem(lapNumber = num, splitTime = split, totalTime = total))
+        } else {
+            result.add(SavedLapItem(lapNumber = 0, splitTime = trimmed, totalTime = ""))
+        }
+    }
+    return result
+}
+
 @Composable
 fun WorkoutSessionCard(
     session: WorkoutSession,
@@ -572,97 +614,308 @@ fun WorkoutSessionCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDark = AppTheme.isDark
+    var expanded by remember { mutableStateOf(false) }
+
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "chevronRotation"
+    )
+
+    val lapsList = remember(session.lapsData) {
+        val parsed = parseSavedLaps(session.lapsData)
+        if (parsed.all { it.lapNumber > 0 }) parsed.sortedBy { it.lapNumber } else parsed
+    }
+
+    val bestLapFormatted = remember(session.bestLapMillis, precisionMode) {
+        if (session.bestLapMillis > 0) TimeFormatter.format(session.bestLapMillis, precisionMode) else ""
+    }
+
     GlassCard(
-        modifier = modifier.fillMaxWidth(),
-        cornerRadius = 16.dp
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ),
+        cornerRadius = 16.dp,
+        onClick = { expanded = !expanded }
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = session.title,
-                    color = AppTheme.textPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = TimeFormatter.formatDate(session.timestamp),
-                    color = AppTheme.textSecondary,
-                    fontSize = 11.sp
-                )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // MAIN CARD HEADER (Always visible)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = session.title,
+                        color = AppTheme.textPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = TimeFormatter.formatDate(session.timestamp),
+                        color = AppTheme.textSecondary,
+                        fontSize = 11.sp
+                    )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Duration Icon + Text
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Timer,
-                            contentDescription = "Duration",
-                            tint = BrandEmerald,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = TimeFormatter.format(session.durationMillis, precisionMode),
-                            color = BrandEmerald,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // Laps Icon + Text
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Flag,
-                            contentDescription = "Laps",
-                            tint = BrandCyan,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "${session.lapCount} Laps",
-                            color = BrandCyan,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    // Best Lap Trophy Icon + Text
-                    if (session.bestLapMillis > 0) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Duration Icon + Text
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.EmojiEvents,
-                                contentDescription = "Best Lap",
-                                tint = GoldBestLap,
+                                imageVector = Icons.Default.Timer,
+                                contentDescription = "Duration",
+                                tint = BrandEmerald,
                                 modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Best: ${TimeFormatter.format(session.bestLapMillis, precisionMode)}",
-                                color = GoldBestLap,
+                                text = TimeFormatter.format(session.durationMillis, precisionMode),
+                                color = BrandEmerald,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Laps Icon + Text
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Flag,
+                                contentDescription = "Laps",
+                                tint = BrandCyan,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${session.lapCount} Laps",
+                                color = BrandCyan,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        // Best Lap Trophy Icon + Text
+                        if (session.bestLapMillis > 0) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.EmojiEvents,
+                                    contentDescription = "Best Lap",
+                                    tint = GoldBestLap,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Best: $bestLapFormatted",
+                                    color = GoldBestLap,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Controls on the right: Chevron Expand/Collapse indicator + Delete Button
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (expanded) "Collapse laps" else "Expand laps",
+                        tint = if (expanded) BrandCyan else AppTheme.textSecondary,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .rotate(chevronRotation)
+                    )
+
+                    GlassIconButton(
+                        icon = Icons.Default.Delete,
+                        contentDescription = "Delete session",
+                        tint = Color(0xFF8899B5),
+                        onClick = onDelete,
+                        size = 36.dp
+                    )
+                }
+            }
+
+            // EXPANDABLE LAP SPLITS SECTION
+            AnimatedVisibility(
+                visible = expanded,
+                enter = fadeIn(animationSpec = tween(220)) + expandVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ),
+                exit = fadeOut(animationSpec = tween(180)) + shrinkVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp)
+                ) {
+                    HorizontalDivider(
+                        color = if (isDark) Color(0x22FFFFFF) else Color(0x18000000),
+                        thickness = 1.dp
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Laps sub-header
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 2.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Flag,
+                                contentDescription = null,
+                                tint = BrandCyan,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "SAVED LAPS (${session.lapCount})",
+                                color = AppTheme.textSecondary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+
+                        Text(
+                            text = "Tap card to collapse",
+                            color = AppTheme.textSecondary.copy(alpha = 0.7f),
+                            fontSize = 10.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    if (lapsList.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 280.dp)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            lapsList.forEachIndexed { index, lap ->
+                                val isAlternate = (index % 2 == 1)
+                                val isBest = bestLapFormatted.isNotBlank() && lap.splitTime.trim() == bestLapFormatted.trim()
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (isBest) {
+                                                if (isDark) Color(0x22FFB800) else Color(0x18FFB800)
+                                            } else if (isAlternate) {
+                                                if (isDark) Color(0x12FFFFFF) else Color(0x0A000000)
+                                            } else Color.Transparent
+                                        )
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(
+                                                    if (isBest) Color(0x33FFB800)
+                                                    else if (isDark) Color(0x2200C2FF)
+                                                    else Color(0x1800C2FF)
+                                                )
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = if (lap.lapNumber > 0) "#%02d".format(lap.lapNumber) else "#",
+                                                color = if (isBest) GoldBestLap else BrandCyan,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        Text(
+                                            text = lap.splitTime,
+                                            color = AppTheme.textPrimary,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+
+                                        if (isBest) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(Color(0x30FFB800))
+                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                                            ) {
+                                                Text(
+                                                    text = "BEST",
+                                                    color = GoldBestLap,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (lap.totalTime.isNotBlank()) {
+                                        Text(
+                                            text = "Total: ${lap.totalTime}",
+                                            color = AppTheme.textSecondary,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Normal
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (session.lapCount == 0) "No laps were recorded for this workout."
+                                else "${session.lapCount} laps recorded (${TimeFormatter.format(session.durationMillis, precisionMode)})",
+                                color = AppTheme.textSecondary,
+                                fontSize = 12.sp
                             )
                         }
                     }
                 }
             }
-
-            GlassIconButton(
-                icon = Icons.Default.Delete,
-                contentDescription = "Delete session",
-                tint = Color(0xFF8899B5),
-                onClick = onDelete,
-                size = 36.dp
-            )
         }
     }
 }

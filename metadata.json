@@ -1,0 +1,6 @@
+{
+  "name": "Arvexa Stopwatch",
+  "description": "High-precision runner stopwatch with background service, volume button triggers, custom gradient UI, and lap analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

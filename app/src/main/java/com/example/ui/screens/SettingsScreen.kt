@@ -3,6 +3,8 @@ package com.example.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.DarkMode
@@ -75,7 +76,7 @@ fun SettingsScreen(
     var showAboutDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
-        contentPadding = PaddingValues(bottom = 90.dp),
+        contentPadding = PaddingValues(bottom = 12.dp),
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
@@ -316,11 +317,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("About Arvexa Stopwatch", color = AppTheme.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("v1.0.0 Pro", color = BrandCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = BrandCyan, modifier = Modifier.size(14.dp))
-                        }
+                        Text("v1.0.0 Pro", color = BrandCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Row(
@@ -332,11 +329,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Privacy Policy", color = AppTheme.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Offline / 100% Private", color = AppTheme.textSecondary, fontSize = 12.sp)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = AppTheme.textSecondary, modifier = Modifier.size(14.dp))
-                        }
+                        Text("Offline / 100% Private", color = AppTheme.textSecondary, fontSize = 12.sp)
                     }
                 }
             }
@@ -345,26 +338,91 @@ fun SettingsScreen(
 
     // About Dialog
     if (showAboutDialog) {
+        val aboutScrollState = rememberScrollState()
         AlertDialog(
             onDismissRequest = { showAboutDialog = false },
             containerColor = if (isDark) Color(0xFF121B2F) else Color(0xFFFFFFFF),
             title = {
-                Text("About Arvexa Stopwatch", color = AppTheme.textPrimary, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = BrandCyan,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "About Arvexa Stopwatch",
+                        color = AppTheme.textPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp
+                    )
+                }
             },
             text = {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(aboutScrollState)
+                        .padding(vertical = 4.dp)
+                ) {
                     Text(
-                        text = "Arvexa Stopwatch v1.0.0",
+                        text = "Arvexa Stopwatch • Pro Edition",
                         color = BrandCyan,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Engineered specifically for track runners, joggers, cyclists, and athletes. Features hardware volume button triggers, persistent lock-screen foreground service, sub-millisecond precision, and deep split analytics.",
+                        text = "Version 1.0.0 Pro",
                         color = AppTheme.textSecondary,
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp
+                        fontSize = 11.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Overview",
+                        color = AppTheme.textPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Arvexa Stopwatch is a high-precision, zero-latency timing utility built specifically for runners, track & field athletes, fitness workouts, coaches, and everyday timekeeping.",
+                        color = AppTheme.textSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Key Capabilities",
+                        color = AppTheme.textPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "• Sub-Millisecond Precision: Accurate monotonic timing engine guarantees zero clock drift.\n" +
+                               "• Physical Volume Buttons: Start, pause, or record laps instantly using hardware volume keys.\n" +
+                               "• Full Screen Lock: Prevent accidental taps during intense runs with a 5-second secure unlock system.\n" +
+                               "• Deep Lap Analytics: Instant identification of Best and Slowest laps with difference deltas.\n" +
+                               "• Persistent Background Timing: Runs accurately via Foreground Service even when screen is locked.\n" +
+                               "• Material 3 Adaptive Theming: Seamless Dark & Light themes with automatic status bar icon matching.\n" +
+                               "• 100% Offline & Private: No ads, no tracking, and zero data leaves your device.",
+                        color = AppTheme.textSecondary,
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Developer & Support",
+                        color = AppTheme.textPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Support: ranaarunkumar5@gmail.com\nBuilt with Kotlin & Jetpack Compose for Android.",
+                        color = AppTheme.textSecondary,
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.sp
                     )
                 }
             },
@@ -373,7 +431,7 @@ fun SettingsScreen(
                     onClick = { showAboutDialog = false },
                     colors = ButtonDefaults.buttonColors(containerColor = BrandPurple)
                 ) {
-                    Text("Done", color = Color.White)
+                    Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -381,26 +439,148 @@ fun SettingsScreen(
 
     // Privacy Dialog
     if (showPrivacyDialog) {
+        val privacyScrollState = rememberScrollState()
         AlertDialog(
             onDismissRequest = { showPrivacyDialog = false },
             containerColor = if (isDark) Color(0xFF121B2F) else Color(0xFFFFFFFF),
             title = {
-                Text("Privacy Policy", color = AppTheme.textPrimary, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = BrandEmerald,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Privacy Policy",
+                        color = AppTheme.textPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp
+                    )
+                }
             },
             text = {
-                Text(
-                    text = "Arvexa Stopwatch operates 100% locally on your device. Your stopwatch logs, laps, and settings are saved permanently on-device and never uploaded or shared with external servers. No account or login required.",
-                    color = AppTheme.textSecondary,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp
-                )
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(privacyScrollState)
+                        .padding(vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Effective Date: October 2026",
+                        color = AppTheme.textSecondary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "1. Privacy Commitment",
+                        color = AppTheme.textPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Arvexa Stopwatch is committed to protecting user privacy. This application is designed with an offline-first, privacy-by-design architecture.",
+                        color = AppTheme.textSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "2. Zero Personal Data Collection",
+                        color = AppTheme.textPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "We do NOT collect, transmit, sell, or store any personal information. We do not access names, email addresses, phone numbers, location data, contacts, photos, or unique advertising IDs. No account registration or sign-in is required.",
+                        color = AppTheme.textSecondary,
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "3. Local On-Device Storage",
+                        color = AppTheme.textPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "All stopwatch timings, lap records, workout sessions, and user settings (sound cues, vibration, precision, theme preferences) are stored strictly on your local device storage using Android Room SQLite and SharedPreferences. No data ever leaves your device.",
+                        color = AppTheme.textSecondary,
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "4. Device Permissions & Purpose",
+                        color = AppTheme.textPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "• FOREGROUND SERVICE: Required to keep stopwatch timing accurately running when the app is minimized.\n" +
+                               "• POST NOTIFICATIONS: Used solely to display the active stopwatch notification with live timing controls.\n" +
+                               "• VIBRATE: Delivers tactile haptic feedback on button presses.\n" +
+                               "• WAKE LOCK: Optional feature to keep the display awake during an active run.",
+                        color = AppTheme.textSecondary,
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "5. Third-Party Services & Ads",
+                        color = AppTheme.textPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Arvexa Stopwatch contains NO advertisements, NO third-party ad networks, NO analytics tracking SDKs, and NO third-party data harvesting tools.",
+                        color = AppTheme.textSecondary,
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "6. User Data Control & Deletion",
+                        color = AppTheme.textPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "You maintain complete ownership of your data. You can clear laps, delete workout sessions, or reset app data at any time from within the app. Uninstalling the app permanently erases all locally saved records.",
+                        color = AppTheme.textSecondary,
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "7. Contact & Inquiries",
+                        color = AppTheme.textPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "If you have any questions or inquiries regarding this Privacy Policy, please contact developer support at: ranaarunkumar5@gmail.com",
+                        color = AppTheme.textSecondary,
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.5.sp
+                    )
+                }
             },
             confirmButton = {
                 Button(
                     onClick = { showPrivacyDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandCyan)
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandEmerald)
                 ) {
-                    Text("Got It", color = Color.Black)
+                    Text("Understood", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             }
         )

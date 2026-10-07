@@ -1,5 +1,7 @@
 package com.example.ui
 
+import android.app.Activity
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -21,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.example.data.SettingsRepository
 import com.example.model.AppScreen
 import com.example.service.StopwatchManager
@@ -46,13 +49,27 @@ fun RunStopApp(
     var showSplash by remember { mutableStateOf(true) }
     var isScreenLocked by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    var lastBackPressTime by remember { mutableStateOf(0L) }
+
     RunStopTheme(themeMode = settings.themeMode) {
         if (showSplash) {
             SplashScreen(onSplashFinished = { showSplash = false })
         } else {
-            // Handle Android back button
+            // Handle Android back button: from other tabs, return to Timer (STOPWATCH) screen
             BackHandler(enabled = !isScreenLocked && currentScreen != AppScreen.STOPWATCH) {
                 currentScreen = AppScreen.STOPWATCH
+            }
+
+            // Press again to exit on Timer (STOPWATCH) screen
+            BackHandler(enabled = !isScreenLocked && currentScreen == AppScreen.STOPWATCH) {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastBackPressTime < 2000L) {
+                    (context as? Activity)?.finish()
+                } else {
+                    lastBackPressTime = currentTime
+                    Toast.makeText(context, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                }
             }
 
             Box(modifier = modifier.fillMaxSize()) {

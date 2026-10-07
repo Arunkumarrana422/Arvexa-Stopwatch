@@ -77,16 +77,27 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private var isVolumeUpPressed = false
+    private var isVolumeDownPressed = false
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         val settings = settingsRepository.settings.value
         if (settings.volumeControlEnabled) {
             when (keyCode) {
                 KeyEvent.KEYCODE_VOLUME_UP -> {
-                    executeVolumeAction(settings.volumeUpAction)
+                    // Trigger only on the first press; ignore repeated key events while held down
+                    if (event?.repeatCount == 0 && !isVolumeUpPressed) {
+                        isVolumeUpPressed = true
+                        executeVolumeAction(settings.volumeUpAction)
+                    }
                     return true
                 }
                 KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                    executeVolumeAction(settings.volumeDownAction)
+                    // Trigger only on the first press; ignore repeated key events while held down
+                    if (event?.repeatCount == 0 && !isVolumeDownPressed) {
+                        isVolumeDownPressed = true
+                        executeVolumeAction(settings.volumeDownAction)
+                    }
                     return true
                 }
             }
@@ -97,8 +108,15 @@ class MainActivity : ComponentActivity() {
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         val settings = settingsRepository.settings.value
         if (settings.volumeControlEnabled) {
-            if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                return true
+            when (keyCode) {
+                KeyEvent.KEYCODE_VOLUME_UP -> {
+                    isVolumeUpPressed = false
+                    return true
+                }
+                KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                    isVolumeDownPressed = false
+                    return true
+                }
             }
         }
         return super.onKeyUp(keyCode, event)

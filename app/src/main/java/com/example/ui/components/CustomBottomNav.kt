@@ -78,7 +78,7 @@ fun CustomBottomNav(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 12.dp)
     ) {
         // Floating glassmorphic pill background
         Box(

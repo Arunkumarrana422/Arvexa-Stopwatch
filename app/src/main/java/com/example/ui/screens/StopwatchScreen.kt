@@ -505,7 +505,7 @@ fun StopwatchScreen(
                             letterSpacing = 1.sp
                         )
                         Text(
-                            text = "View All →",
+                            text = "View All",
                             color = BrandCyan,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold

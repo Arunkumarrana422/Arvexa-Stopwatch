@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Flag
@@ -30,7 +29,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -78,7 +76,6 @@ fun LapsScreen(
 
     val listState = rememberLazyListState()
     var showClearDialog by remember { mutableStateOf(false) }
-    var lapToDelete by remember { mutableStateOf<Lap?>(null) }
 
     // When a new lap is added, smoothly animate-scroll to top so it is immediately visible
     LaunchedEffect(laps.size) {
@@ -288,7 +285,7 @@ fun LapsScreen(
         } else {
             LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(bottom = 90.dp),
+                contentPadding = PaddingValues(bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.weight(1f)
             ) {
@@ -301,7 +298,6 @@ fun LapsScreen(
                         isBest = isBest,
                         isSlowest = isSlowest,
                         precisionMode = precisionMode,
-                        onDelete = { lapToDelete = lap },
                         modifier = Modifier.animateItem()
                     )
                 }
@@ -336,34 +332,6 @@ fun LapsScreen(
             }
         )
     }
-
-    // Confirmation Dialog for Deleting Single Lap
-    lapToDelete?.let { lap ->
-        AlertDialog(
-            onDismissRequest = { lapToDelete = null },
-            containerColor = if (isDark) Color(0xFF131D33) else Color(0xFFFFFFFF),
-            titleContentColor = AppTheme.textPrimary,
-            textContentColor = AppTheme.textSecondary,
-            title = { Text("Delete Lap ${lap.lapNumber}?", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete Lap ${lap.lapNumber} (${TimeFormatter.format(lap.lapTimeMillis, precisionMode)}) from this session?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        stopwatchManager.deleteLap(lap.lapNumber)
-                        lapToDelete = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandPink)
-                ) {
-                    Text("Delete", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { lapToDelete = null }) {
-                    Text("Cancel", color = AppTheme.textSecondary)
-                }
-            }
-        )
-    }
 }
 
 @Composable
@@ -372,7 +340,6 @@ fun LapCard(
     isBest: Boolean,
     isSlowest: Boolean,
     precisionMode: PrecisionMode,
-    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isDark = AppTheme.isDark
@@ -443,31 +410,35 @@ fun LapCard(
                         if (isBest) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Box(
+                                contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
+                                    .clip(CircleShape)
                                     .background(BrandEmerald)
-                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                                    .padding(horizontal = 7.dp, vertical = 2.dp)
                             ) {
                                 Text(
                                     text = "BEST",
                                     color = Color.Black,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Black
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 0.5.sp
                                 )
                             }
                         } else if (isSlowest) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Box(
+                                contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
+                                    .clip(CircleShape)
                                     .background(BrandPink)
-                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                                    .padding(horizontal = 7.dp, vertical = 2.dp)
                             ) {
                                 Text(
                                     text = "SLOWEST",
                                     color = Color.White,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Black
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 0.5.sp
                                 )
                             }
                         }
@@ -483,40 +454,23 @@ fun LapCard(
                 }
             }
 
-            // Right: Split Time & Delta Difference + Delete action
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(horizontalAlignment = Alignment.End) {
+            // Right: Split Time & Delta Difference
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = TimeFormatter.format(lap.lapTimeMillis, precisionMode),
+                    color = if (isBest) BrandEmerald else AppTheme.textPrimary,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                if (lap.diffFromPreviousMillis != 0L) {
+                    val isFaster = lap.diffFromPreviousMillis < 0
                     Text(
-                        text = TimeFormatter.format(lap.lapTimeMillis, precisionMode),
-                        color = if (isBest) BrandEmerald else AppTheme.textPrimary,
-                        fontSize = 17.sp,
+                        text = TimeFormatter.formatLapDifference(lap.diffFromPreviousMillis),
+                        color = if (isFaster) BrandEmerald else BrandPink,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
-
-                    if (lap.diffFromPreviousMillis != 0L) {
-                        val isFaster = lap.diffFromPreviousMillis < 0
-                        Text(
-                            text = TimeFormatter.formatLapDifference(lap.diffFromPreviousMillis),
-                            color = if (isFaster) BrandEmerald else BrandPink,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                if (onDelete != null) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Delete lap",
-                            tint = Color(0xFF94A3B8),
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
                 }
             }
         }

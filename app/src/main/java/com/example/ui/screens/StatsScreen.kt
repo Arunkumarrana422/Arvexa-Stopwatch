@@ -97,7 +97,7 @@ fun StatsScreen(
     val avgSessionDuration = if (totalSessions > 0) totalTimeMillis / totalSessions else 0L
 
     LazyColumn(
-        contentPadding = PaddingValues(bottom = 90.dp),
+        contentPadding = PaddingValues(bottom = 12.dp),
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)

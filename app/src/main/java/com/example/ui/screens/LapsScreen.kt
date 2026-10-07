@@ -58,6 +58,7 @@ import com.example.ui.theme.BrandEmerald
 import com.example.ui.theme.BrandPink
 import com.example.ui.theme.BrandPurple
 import com.example.ui.theme.GoldBestLap
+import com.example.util.LapPdfGenerator
 import com.example.util.TimeFormatter
 
 @Composable
@@ -118,16 +119,17 @@ fun LapsScreen(
                 if (laps.isNotEmpty()) {
                     GlassIconButton(
                         icon = Icons.Default.Share,
-                        contentDescription = "Share Laps",
+                        contentDescription = "Share Laps PDF",
                         onClick = {
-                            val shareText = buildShareReport(laps, elapsedMillis, bestLap, avgLapMillis, precisionMode)
-                            val sendIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                                type = "text/plain"
-                            }
-                            val shareIntent = Intent.createChooser(sendIntent, "Share RunStop Lap Results")
-                            context.startActivity(shareIntent)
+                            LapPdfGenerator.generateAndShareLapReport(
+                                context = context,
+                                laps = laps,
+                                totalElapsedMillis = elapsedMillis,
+                                bestLap = bestLap,
+                                slowestLap = slowestLap,
+                                avgLapMillis = avgLapMillis,
+                                precisionMode = precisionMode
+                            )
                         },
                         size = 40.dp
                     )

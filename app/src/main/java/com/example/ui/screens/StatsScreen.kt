@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Timer
@@ -72,6 +73,7 @@ import com.example.ui.theme.BrandPink
 import com.example.ui.theme.BrandPurple
 import com.example.ui.theme.BrandViolet
 import com.example.ui.theme.GoldBestLap
+import com.example.util.LapPdfGenerator
 import com.example.util.TimeFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -222,25 +224,43 @@ fun StatsScreen(
                 if (sessions.isNotEmpty()) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onViewAllClick() }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                            .testTag("btn_view_all_history")
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "View All",
-                            color = BrandCyan,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
+                        GlassIconButton(
+                            icon = Icons.Default.Share,
+                            contentDescription = "Share Workout History PDF",
+                            onClick = {
+                                LapPdfGenerator.generateAndShareWorkoutHistoryReport(
+                                    context = context,
+                                    sessions = sessions,
+                                    precisionMode = precisionMode
+                                )
+                            },
+                            size = 34.dp
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "View All Workouts",
-                            tint = BrandCyan,
-                            modifier = Modifier.size(14.dp)
-                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onViewAllClick() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .testTag("btn_view_all_history")
+                        ) {
+                            Text(
+                                text = "View All",
+                                color = BrandCyan,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = "View All Workouts",
+                                tint = BrandCyan,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -636,13 +656,33 @@ fun WorkoutSessionCard(
                 }
             }
 
-            GlassIconButton(
-                icon = Icons.Default.Delete,
-                contentDescription = "Delete session",
-                tint = Color(0xFF8899B5),
-                onClick = onDelete,
-                size = 36.dp
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val context = LocalContext.current
+                GlassIconButton(
+                    icon = Icons.Default.Share,
+                    contentDescription = "Share session PDF",
+                    tint = BrandCyan,
+                    onClick = {
+                        LapPdfGenerator.generateAndShareSingleWorkoutSessionReport(
+                            context = context,
+                            session = session,
+                            precisionMode = precisionMode
+                        )
+                    },
+                    size = 36.dp
+                )
+
+                GlassIconButton(
+                    icon = Icons.Default.Delete,
+                    contentDescription = "Delete session",
+                    tint = Color(0xFF8899B5),
+                    onClick = onDelete,
+                    size = 36.dp
+                )
+            }
         }
     }
 }

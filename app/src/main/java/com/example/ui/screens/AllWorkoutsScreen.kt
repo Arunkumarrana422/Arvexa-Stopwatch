@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -54,6 +55,7 @@ import com.example.ui.theme.AppTheme
 import com.example.ui.theme.BrandCyan
 import com.example.ui.theme.BrandEmerald
 import com.example.ui.theme.BrandPink
+import com.example.util.LapPdfGenerator
 import com.example.util.TimeFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -131,25 +133,44 @@ fun AllWorkoutsScreen(
             if (sessions.isNotEmpty()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { showClearAllDialog = true }
-                        .padding(horizontal = 8.dp, vertical = 6.dp)
-                        .testTag("btn_clear_all_workouts")
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteSweep,
-                        contentDescription = "Clear All",
-                        tint = BrandPink,
-                        modifier = Modifier.size(16.dp)
+                    GlassIconButton(
+                        icon = Icons.Default.Share,
+                        contentDescription = "Share Workout History PDF",
+                        onClick = {
+                            LapPdfGenerator.generateAndShareWorkoutHistoryReport(
+                                context = context,
+                                sessions = sessions,
+                                precisionMode = precisionMode
+                            )
+                        },
+                        size = 38.dp,
+                        modifier = Modifier.testTag("btn_share_all_workouts_pdf")
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Clear All",
-                        color = BrandPink,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { showClearAllDialog = true }
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                            .testTag("btn_clear_all_workouts")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteSweep,
+                            contentDescription = "Clear All",
+                            tint = BrandPink,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Clear All",
+                            color = BrandPink,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }

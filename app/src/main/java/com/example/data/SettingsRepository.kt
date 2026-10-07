@@ -58,7 +58,7 @@ class SettingsRepository(context: Context) {
             showOngoingNotification = prefs.getBoolean(KEY_SHOW_NOTIFICATION, true),
             showLapInNotification = prefs.getBoolean(KEY_SHOW_LAP_NOTIF, true),
             soundCuesEnabled = prefs.getBoolean(KEY_SOUND_CUES, true),
-            hapticsEnabled = prefs.getBoolean(KEY_HAPTICS, true),
+            hapticsEnabled = prefs.getBoolean(KEY_HAPTICS, false),
             themeMode = try {
                 ThemeMode.valueOf(prefs.getString(KEY_THEME_MODE, ThemeMode.DARK.name) ?: ThemeMode.DARK.name)
             } catch (e: Exception) {

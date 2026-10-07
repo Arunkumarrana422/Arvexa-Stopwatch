@@ -45,7 +45,7 @@ data class StopwatchSettings(
     val showOngoingNotification: Boolean = true,
     val showLapInNotification: Boolean = true,
     val soundCuesEnabled: Boolean = true,
-    val hapticsEnabled: Boolean = true,
+    val hapticsEnabled: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.DARK,
     val animationsEnabled: Boolean = true
 )

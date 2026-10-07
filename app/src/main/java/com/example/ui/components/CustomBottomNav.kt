@@ -62,7 +62,7 @@ fun CustomBottomNav(
     currentScreen: AppScreen,
     onScreenSelected: (AppScreen) -> Unit,
     lapCount: Int = 0,
-    hapticsEnabled: Boolean = true,
+    hapticsEnabled: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current

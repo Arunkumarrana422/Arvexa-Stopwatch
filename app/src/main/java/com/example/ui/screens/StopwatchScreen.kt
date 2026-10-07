@@ -1,14 +1,21 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -119,6 +126,12 @@ fun StopwatchScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
     ) {
         // TOP BAR
         Row(
@@ -317,8 +330,18 @@ fun StopwatchScreen(
         // QUICK STATS CHIPS (Best Lap & Avg Lap)
         AnimatedVisibility(
             visible = laps.isNotEmpty(),
-            enter = fadeIn() + slideInVertically(),
-            exit = fadeOut()
+            enter = fadeIn(animationSpec = tween(350)) + expandVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ),
+            exit = fadeOut(animationSpec = tween(250)) + shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
         ) {
             Row(
                 modifier = Modifier
@@ -402,25 +425,27 @@ fun StopwatchScreen(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // ACTION BUTTONS SECTION (Large Icon-Only Center Button)
+        // ACTION BUTTONS SECTION (Large Icon-Only Center Button with animated side buttons)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 8.dp)
+                .animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                ),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            when (state) {
-                StopwatchState.IDLE -> {
-                    // Large centered START button (Icon only)
-                    LargeStartPauseButton(
-                        state = state,
-                        onClick = { stopwatchManager.start() }
-                    )
-                }
-
-                StopwatchState.RUNNING -> {
-                    // LAP Button
+            // Left Action Button (LAP when RUNNING, RESET when PAUSED, animated in/out)
+            AnimatedVisibility(
+                visible = state != StopwatchState.IDLE,
+                enter = fadeIn(animationSpec = tween(300)) + scaleIn(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(200)) + scaleOut(animationSpec = tween(200))
+            ) {
+                if (state == StopwatchState.RUNNING) {
                     SecondaryActionButton(
                         text = "LAP",
                         icon = Icons.Default.Flag,
@@ -428,25 +453,7 @@ fun StopwatchScreen(
                         onClick = { stopwatchManager.recordLap() },
                         testTag = "action_lap_button"
                     )
-
-                    // PAUSE Button (Icon only)
-                    LargeStartPauseButton(
-                        state = state,
-                        onClick = { stopwatchManager.pause() }
-                    )
-
-                    // LOCK Screen Button
-                    SecondaryActionButton(
-                        text = "LOCK",
-                        icon = Icons.Default.Lock,
-                        gradient = Brush.horizontalGradient(listOf(BrandCyan, BrandPurple)),
-                        onClick = onLockScreen,
-                        testTag = "action_lock_button"
-                    )
-                }
-
-                StopwatchState.PAUSED -> {
-                    // RESET Button with Confirmation Dialog
+                } else if (state == StopwatchState.PAUSED) {
                     SecondaryActionButton(
                         text = "RESET",
                         icon = Icons.Default.Refresh,
@@ -463,14 +470,36 @@ fun StopwatchScreen(
                         },
                         testTag = "action_reset_button"
                     )
+                }
+            }
 
-                    // RESUME Button (Icon only)
-                    LargeStartPauseButton(
-                        state = state,
-                        onClick = { stopwatchManager.resume() }
+            // Center Large Play/Pause/Resume Button
+            LargeStartPauseButton(
+                state = state,
+                onClick = {
+                    when (state) {
+                        StopwatchState.IDLE -> stopwatchManager.start()
+                        StopwatchState.RUNNING -> stopwatchManager.pause()
+                        StopwatchState.PAUSED -> stopwatchManager.resume()
+                    }
+                }
+            )
+
+            // Right Action Button (LOCK when RUNNING, SAVE when PAUSED, animated in/out)
+            AnimatedVisibility(
+                visible = state != StopwatchState.IDLE,
+                enter = fadeIn(animationSpec = tween(300)) + scaleIn(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(200)) + scaleOut(animationSpec = tween(200))
+            ) {
+                if (state == StopwatchState.RUNNING) {
+                    SecondaryActionButton(
+                        text = "LOCK",
+                        icon = Icons.Default.Lock,
+                        gradient = Brush.horizontalGradient(listOf(BrandCyan, BrandPurple)),
+                        onClick = onLockScreen,
+                        testTag = "action_lock_button"
                     )
-
-                    // STOP & SAVE Button
+                } else if (state == StopwatchState.PAUSED) {
                     SecondaryActionButton(
                         text = "SAVE",
                         icon = Icons.Default.Stop,
@@ -485,7 +514,21 @@ fun StopwatchScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // RECENT LAPS QUICK GLANCE (SHOWS 4 LAPS, ROUNDED RIPPLE EFFECT)
-        if (laps.isNotEmpty()) {
+        AnimatedVisibility(
+            visible = laps.isNotEmpty(),
+            enter = fadeIn(animationSpec = tween(350)) + expandVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ),
+            exit = fadeOut(animationSpec = tween(250)) + shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        ) {
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 16.dp,

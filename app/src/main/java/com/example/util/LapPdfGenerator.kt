@@ -27,6 +27,8 @@ import kotlin.math.abs
 object LapPdfGenerator {
 
     private const val PAGE_WIDTH = 595 // A4 standard width in points
+    private const val PAGE_HEIGHT = 842 // A4 standard height in points
+    private const val FOOTER_Y = 812f
     private const val MARGIN_X = 28f
 
     // ─────────────────────────────────────────────────────────────
@@ -130,7 +132,7 @@ object LapPdfGenerator {
         }
 
         val lapsOnFirstPage = 24
-        val lapsOnSubsequentPages = 32
+        val lapsOnSubsequentPages = 31
         val remainingLaps = (laps.size - lapsOnFirstPage).coerceAtLeast(0)
         val totalPages = if (laps.size <= lapsOnFirstPage) 1 else 1 + ((remainingLaps + lapsOnSubsequentPages - 1) / lapsOnSubsequentPages)
 
@@ -138,23 +140,12 @@ object LapPdfGenerator {
         val currentDateStr = SimpleDateFormat("dd MMM yyyy • HH:mm", Locale.US).format(Date())
 
         for (pageNum in 1..totalPages) {
-            val lapsToDraw = if (pageNum == 1) lapsOnFirstPage else lapsOnSubsequentPages
-            val endIndex = (lapIndex + lapsToDraw).coerceAtMost(laps.size)
-            val countThisPage = endIndex - lapIndex
-            val rowHeight = 22f
-
-            val tableHeaderY = if (pageNum == 1) 210f else 56f
-            val tableStartY = tableHeaderY + 24f
-            val tableEndY = tableStartY + (countThisPage * rowHeight)
-            val footerY = tableEndY + 16f
-            val pageHeight = (footerY + 28f).toInt()
-
-            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, pageHeight, pageNum).create()
+            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNum).create()
             val page = pdfDocument.startPage(pageInfo)
             val canvas = page.canvas
 
             fillPaint.color = Color.WHITE
-            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), pageHeight.toFloat(), fillPaint)
+            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), PAGE_HEIGHT.toFloat(), fillPaint)
 
             var currentY: Float
 
@@ -204,6 +195,10 @@ object LapPdfGenerator {
             drawTableHeader(canvas, fillPaint, textPaint, currentY)
             currentY += 24f
 
+            val lapsToDraw = if (pageNum == 1) lapsOnFirstPage else lapsOnSubsequentPages
+            val endIndex = (lapIndex + lapsToDraw).coerceAtMost(laps.size)
+            val rowHeight = 23.5f
+
             for (i in lapIndex until endIndex) {
                 val lap = laps[i]
                 val isAlternate = (i % 2 == 1)
@@ -227,7 +222,25 @@ object LapPdfGenerator {
             }
             lapIndex = endIndex
 
-            drawPageFooter(canvas, strokePaint, textPaint, footerY, pageNum, totalPages)
+            // If on the final page and there is empty vertical room, draw an analytics card to fill the page cleanly
+            val spaceRemaining = FOOTER_Y - currentY
+            if (pageNum == totalPages && spaceRemaining >= 80f) {
+                drawLapAnalyticsCard(
+                    canvas = canvas,
+                    fillPaint = fillPaint,
+                    strokePaint = strokePaint,
+                    textPaint = textPaint,
+                    startY = currentY + 10f,
+                    endY = FOOTER_Y - 12f,
+                    laps = laps,
+                    bestLap = bestLap,
+                    slowestLap = slowestLap,
+                    avgLapMillis = avgLapMillis,
+                    precisionMode = precisionMode
+                )
+            }
+
+            drawPageFooter(canvas, strokePaint, textPaint, pageNum, totalPages)
             pdfDocument.finishPage(page)
         }
 
@@ -267,23 +280,12 @@ object LapPdfGenerator {
         val bestEver = sessions.map { it.bestLapMillis }.filter { it > 0 }.minOrNull() ?: 0L
 
         for (pageNum in 1..totalPages) {
-            val countToDraw = if (pageNum == 1) sessionsOnFirstPage else sessionsOnSubsequentPages
-            val endIndex = (sessionIndex + countToDraw).coerceAtMost(sessions.size)
-            val countThisPage = endIndex - sessionIndex
-            val rowHeight = 26f
-
-            val tableHeaderY = if (pageNum == 1) 210f else 56f
-            val tableStartY = tableHeaderY + 24f
-            val tableEndY = tableStartY + (countThisPage * rowHeight)
-            val footerY = tableEndY + 16f
-            val pageHeight = (footerY + 28f).toInt()
-
-            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, pageHeight, pageNum).create()
+            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNum).create()
             val page = pdfDocument.startPage(pageInfo)
             val canvas = page.canvas
 
             fillPaint.color = Color.WHITE
-            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), pageHeight.toFloat(), fillPaint)
+            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), PAGE_HEIGHT.toFloat(), fillPaint)
 
             var currentY: Float
 
@@ -333,6 +335,10 @@ object LapPdfGenerator {
             drawWorkoutTableHeader(canvas, fillPaint, textPaint, currentY)
             currentY += 24f
 
+            val countToDraw = if (pageNum == 1) sessionsOnFirstPage else sessionsOnSubsequentPages
+            val endIndex = (sessionIndex + countToDraw).coerceAtMost(sessions.size)
+            val rowHeight = 28f
+
             for (i in sessionIndex until endIndex) {
                 val session = sessions[i]
                 val isAlternate = (i % 2 == 1)
@@ -352,7 +358,22 @@ object LapPdfGenerator {
             }
             sessionIndex = endIndex
 
-            drawPageFooter(canvas, strokePaint, textPaint, footerY, pageNum, totalPages)
+            // If on the final page and there is empty vertical room, draw an activity volume summary card
+            val spaceRemaining = FOOTER_Y - currentY
+            if (pageNum == totalPages && spaceRemaining >= 80f) {
+                drawWorkoutHistoryAnalyticsCard(
+                    canvas = canvas,
+                    fillPaint = fillPaint,
+                    strokePaint = strokePaint,
+                    textPaint = textPaint,
+                    startY = currentY + 10f,
+                    endY = FOOTER_Y - 12f,
+                    sessions = sessions,
+                    precisionMode = precisionMode
+                )
+            }
+
+            drawPageFooter(canvas, strokePaint, textPaint, pageNum, totalPages)
             pdfDocument.finishPage(page)
         }
 
@@ -381,7 +402,7 @@ object LapPdfGenerator {
 
         val lapLines = session.lapsData.lines().filter { it.isNotBlank() }
         val lapsOnFirstPage = 24
-        val lapsOnSubsequentPages = 32
+        val lapsOnSubsequentPages = 31
         val remaining = (lapLines.size - lapsOnFirstPage).coerceAtLeast(0)
         val totalPages = if (lapLines.size <= lapsOnFirstPage) 1 else 1 + ((remaining + lapsOnSubsequentPages - 1) / lapsOnSubsequentPages)
 
@@ -389,24 +410,12 @@ object LapPdfGenerator {
         val sessionDateStr = TimeFormatter.formatDate(session.timestamp)
 
         for (pageNum in 1..totalPages) {
-            val countToDraw = if (pageNum == 1) lapsOnFirstPage else lapsOnSubsequentPages
-            val endIndex = (lapIndex + countToDraw).coerceAtMost(lapLines.size)
-            val countThisPage = endIndex - lapIndex
-            val rowHeight = 22f
-
-            val tableHeaderY = if (pageNum == 1) 210f else 56f
-            val hasLaps = lapLines.isNotEmpty()
-            val tableStartY = if (hasLaps) tableHeaderY + 24f else tableHeaderY
-            val tableEndY = tableStartY + (countThisPage * rowHeight)
-            val footerY = tableEndY + 16f
-            val pageHeight = (footerY + 28f).toInt()
-
-            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, pageHeight, pageNum).create()
+            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNum).create()
             val page = pdfDocument.startPage(pageInfo)
             val canvas = page.canvas
 
             fillPaint.color = Color.WHITE
-            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), pageHeight.toFloat(), fillPaint)
+            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), PAGE_HEIGHT.toFloat(), fillPaint)
 
             var currentY: Float
 
@@ -451,9 +460,13 @@ object LapPdfGenerator {
                 currentY = 56f
             }
 
-            if (hasLaps) {
+            if (lapLines.isNotEmpty()) {
                 drawSingleSessionTableHeader(canvas, fillPaint, textPaint, currentY)
                 currentY += 24f
+
+                val countToDraw = if (pageNum == 1) lapsOnFirstPage else lapsOnSubsequentPages
+                val endIndex = (lapIndex + countToDraw).coerceAtMost(lapLines.size)
+                val rowHeight = 22f
 
                 for (i in lapIndex until endIndex) {
                     val line = lapLines[i]
@@ -473,7 +486,21 @@ object LapPdfGenerator {
                 lapIndex = endIndex
             }
 
-            drawPageFooter(canvas, strokePaint, textPaint, footerY, pageNum, totalPages)
+            val spaceRemaining = FOOTER_Y - currentY
+            if (pageNum == totalPages && spaceRemaining >= 80f) {
+                drawSingleSessionAnalyticsCard(
+                    canvas = canvas,
+                    fillPaint = fillPaint,
+                    strokePaint = strokePaint,
+                    textPaint = textPaint,
+                    startY = currentY + 10f,
+                    endY = FOOTER_Y - 12f,
+                    session = session,
+                    precisionMode = precisionMode
+                )
+            }
+
+            drawPageFooter(canvas, strokePaint, textPaint, pageNum, totalPages)
             pdfDocument.finishPage(page)
         }
 
@@ -1083,7 +1110,6 @@ object LapPdfGenerator {
         canvas: android.graphics.Canvas,
         strokePaint: Paint,
         textPaint: Paint,
-        footerY: Float,
         pageNum: Int,
         totalPages: Int
     ) {
@@ -1091,17 +1117,361 @@ object LapPdfGenerator {
             color = 0xFFE2E8F0.toInt()
             strokeWidth = 0.8f
         }
-        canvas.drawLine(MARGIN_X, footerY, PAGE_WIDTH - MARGIN_X, footerY, strokePaint)
+        canvas.drawLine(MARGIN_X, FOOTER_Y, PAGE_WIDTH - MARGIN_X, FOOTER_Y, strokePaint)
 
         textPaint.apply {
             textSize = 7.5f
             typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
             color = 0xFF94A3B8.toInt()
         }
-        canvas.drawText("Generated by Arvexa Stopwatch Pro • High Precision Timing System", MARGIN_X, footerY + 13f, textPaint)
+        canvas.drawText("Generated by Arvexa Stopwatch Pro • High Precision Timing System", MARGIN_X, FOOTER_Y + 13f, textPaint)
 
         val pageStr = "Page $pageNum of $totalPages"
-        canvas.drawText(pageStr, PAGE_WIDTH - MARGIN_X - 60f, footerY + 13f, textPaint)
+        canvas.drawText(pageStr, PAGE_WIDTH - MARGIN_X - 60f, FOOTER_Y + 13f, textPaint)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // ANALYTICS & SUMMARY CARDS (Utilize A4 page bottom cleanly)
+    // ─────────────────────────────────────────────────────────────
+    private fun drawLapAnalyticsCard(
+        canvas: android.graphics.Canvas,
+        fillPaint: Paint,
+        strokePaint: Paint,
+        textPaint: Paint,
+        startY: Float,
+        endY: Float,
+        laps: List<Lap>,
+        bestLap: Lap?,
+        slowestLap: Lap?,
+        avgLapMillis: Long,
+        precisionMode: PrecisionMode
+    ) {
+        val cardRect = RectF(MARGIN_X, startY, PAGE_WIDTH - MARGIN_X, endY)
+        fillPaint.color = 0xFFF8FAFC.toInt()
+        canvas.drawRoundRect(cardRect, 8f, 8f, fillPaint)
+
+        strokePaint.apply {
+            color = 0xFFE2E8F0.toInt()
+            strokeWidth = 1f
+        }
+        canvas.drawRoundRect(cardRect, 8f, 8f, strokePaint)
+
+        // Top accent strip
+        fillPaint.color = 0xFF00C2FF.toInt()
+        val stripRect = RectF(MARGIN_X, startY, PAGE_WIDTH - MARGIN_X, startY + 3.5f)
+        val stripPath = Path().apply {
+            addRoundRect(stripRect, floatArrayOf(8f, 8f, 8f, 8f, 0f, 0f, 0f, 0f), Path.Direction.CW)
+        }
+        canvas.drawPath(stripPath, fillPaint)
+
+        // Header Title
+        textPaint.apply {
+            textSize = 9f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+            color = 0xFF0F172A.toInt()
+        }
+        canvas.drawText("TIMING PERFORMANCE & PACING ANALYSIS", MARGIN_X + 16f, startY + 18f, textPaint)
+
+        textPaint.apply {
+            textSize = 7.5f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+            color = 0xFF64748B.toInt()
+        }
+        canvas.drawText("Official session telemetry recorded via Arvexa Stopwatch Engine", MARGIN_X + 16f, startY + 30f, textPaint)
+
+        val cardHeight = endY - startY
+        if (cardHeight > 75f) {
+            val spread = if (bestLap != null && slowestLap != null && slowestLap.lapTimeMillis > bestLap.lapTimeMillis) {
+                slowestLap.lapTimeMillis - bestLap.lapTimeMillis
+            } else 0L
+
+            val spreadStr = if (spread > 0) "+${TimeFormatter.format(spread, precisionMode)}" else "Consistent Pacing"
+            val avgStr = if (avgLapMillis > 0) TimeFormatter.format(avgLapMillis, precisionMode) else "--"
+
+            val col1X = MARGIN_X + 16f
+            val col2X = MARGIN_X + 185f
+            val col3X = MARGIN_X + 355f
+            val metricsY = startY + 48f
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF64748B.toInt()
+            }
+            canvas.drawText("SPLIT VARIANCE / SPREAD", col1X, metricsY, textPaint)
+            textPaint.apply {
+                textSize = 10.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF00C2FF.toInt()
+            }
+            canvas.drawText(spreadStr, col1X, metricsY + 16f, textPaint)
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF64748B.toInt()
+            }
+            canvas.drawText("AVERAGE LAP SPLIT", col2X, metricsY, textPaint)
+            textPaint.apply {
+                textSize = 10.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF6C5CE7.toInt()
+            }
+            canvas.drawText(avgStr, col2X, metricsY + 16f, textPaint)
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF64748B.toInt()
+            }
+            canvas.drawText("DATA INTEGRITY", col3X, metricsY, textPaint)
+            textPaint.apply {
+                textSize = 9.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF059669.toInt()
+            }
+            canvas.drawText("Verified • On-Device Room DB", col3X, metricsY + 16f, textPaint)
+        }
+
+        if (cardHeight > 140f) {
+            val signY = endY - 24f
+            strokePaint.apply {
+                color = 0xFFCBD5E1.toInt()
+                strokeWidth = 0.8f
+            }
+            canvas.drawLine(MARGIN_X + 16f, signY, MARGIN_X + 220f, signY, strokePaint)
+            canvas.drawLine(PAGE_WIDTH - MARGIN_X - 220f, signY, PAGE_WIDTH - MARGIN_X - 16f, signY, strokePaint)
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+                color = 0xFF94A3B8.toInt()
+            }
+            canvas.drawText("Athlete / Timekeeper Signature", MARGIN_X + 16f, signY + 12f, textPaint)
+            canvas.drawText("Coach / Official Verification Date", PAGE_WIDTH - MARGIN_X - 220f, signY + 12f, textPaint)
+        }
+    }
+
+    private fun drawWorkoutHistoryAnalyticsCard(
+        canvas: android.graphics.Canvas,
+        fillPaint: Paint,
+        strokePaint: Paint,
+        textPaint: Paint,
+        startY: Float,
+        endY: Float,
+        sessions: List<WorkoutSession>,
+        precisionMode: PrecisionMode
+    ) {
+        val cardRect = RectF(MARGIN_X, startY, PAGE_WIDTH - MARGIN_X, endY)
+        fillPaint.color = 0xFFF8FAFC.toInt()
+        canvas.drawRoundRect(cardRect, 8f, 8f, fillPaint)
+
+        strokePaint.apply {
+            color = 0xFFE2E8F0.toInt()
+            strokeWidth = 1f
+        }
+        canvas.drawRoundRect(cardRect, 8f, 8f, strokePaint)
+
+        // Top accent strip
+        fillPaint.color = 0xFF00E5A8.toInt()
+        val stripRect = RectF(MARGIN_X, startY, PAGE_WIDTH - MARGIN_X, startY + 3.5f)
+        val stripPath = Path().apply {
+            addRoundRect(stripRect, floatArrayOf(8f, 8f, 8f, 8f, 0f, 0f, 0f, 0f), Path.Direction.CW)
+        }
+        canvas.drawPath(stripPath, fillPaint)
+
+        // Header Title
+        textPaint.apply {
+            textSize = 9f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+            color = 0xFF0F172A.toInt()
+        }
+        canvas.drawText("TRAINING ACTIVITY & VOLUME SUMMARY", MARGIN_X + 16f, startY + 18f, textPaint)
+
+        textPaint.apply {
+            textSize = 7.5f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+            color = 0xFF64748B.toInt()
+        }
+        canvas.drawText("Aggregated workout history logged locally in Arvexa Stopwatch", MARGIN_X + 16f, startY + 30f, textPaint)
+
+        val cardHeight = endY - startY
+        if (cardHeight > 75f && sessions.isNotEmpty()) {
+            val totalDuration = sessions.sumOf { it.durationMillis }
+            val avgDuration = totalDuration / sessions.size
+            val avgDurationStr = TimeFormatter.format(avgDuration, precisionMode)
+            val totalLaps = sessions.sumOf { it.lapCount }
+
+            val col1X = MARGIN_X + 16f
+            val col2X = MARGIN_X + 185f
+            val col3X = MARGIN_X + 355f
+            val metricsY = startY + 48f
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF64748B.toInt()
+            }
+            canvas.drawText("AVG WORKOUT DURATION", col1X, metricsY, textPaint)
+            textPaint.apply {
+                textSize = 10.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF00E5A8.toInt()
+            }
+            canvas.drawText(avgDurationStr, col1X, metricsY + 16f, textPaint)
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF64748B.toInt()
+            }
+            canvas.drawText("TOTAL COMPLETED LAPS", col2X, metricsY, textPaint)
+            textPaint.apply {
+                textSize = 10.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF6C5CE7.toInt()
+            }
+            canvas.drawText("$totalLaps Laps", col2X, metricsY + 16f, textPaint)
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF64748B.toInt()
+            }
+            canvas.drawText("LOG STATUS", col3X, metricsY, textPaint)
+            textPaint.apply {
+                textSize = 9.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF0284C7.toInt()
+            }
+            canvas.drawText("${sessions.size} Active Sessions Logged", col3X, metricsY + 16f, textPaint)
+        }
+
+        if (cardHeight > 140f) {
+            val signY = endY - 24f
+            strokePaint.apply {
+                color = 0xFFCBD5E1.toInt()
+                strokeWidth = 0.8f
+            }
+            canvas.drawLine(MARGIN_X + 16f, signY, MARGIN_X + 220f, signY, strokePaint)
+            canvas.drawLine(PAGE_WIDTH - MARGIN_X - 220f, signY, PAGE_WIDTH - MARGIN_X - 16f, signY, strokePaint)
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+                color = 0xFF94A3B8.toInt()
+            }
+            canvas.drawText("Athlete / Trainee Signature", MARGIN_X + 16f, signY + 12f, textPaint)
+            canvas.drawText("Instructor / Coach Sign-off", PAGE_WIDTH - MARGIN_X - 220f, signY + 12f, textPaint)
+        }
+    }
+
+    private fun drawSingleSessionAnalyticsCard(
+        canvas: android.graphics.Canvas,
+        fillPaint: Paint,
+        strokePaint: Paint,
+        textPaint: Paint,
+        startY: Float,
+        endY: Float,
+        session: WorkoutSession,
+        precisionMode: PrecisionMode
+    ) {
+        val cardRect = RectF(MARGIN_X, startY, PAGE_WIDTH - MARGIN_X, endY)
+        fillPaint.color = 0xFFF8FAFC.toInt()
+        canvas.drawRoundRect(cardRect, 8f, 8f, fillPaint)
+
+        strokePaint.apply {
+            color = 0xFFE2E8F0.toInt()
+            strokeWidth = 1f
+        }
+        canvas.drawRoundRect(cardRect, 8f, 8f, strokePaint)
+
+        fillPaint.color = 0xFFFFB800.toInt()
+        val stripRect = RectF(MARGIN_X, startY, PAGE_WIDTH - MARGIN_X, startY + 3.5f)
+        val stripPath = Path().apply {
+            addRoundRect(stripRect, floatArrayOf(8f, 8f, 8f, 8f, 0f, 0f, 0f, 0f), Path.Direction.CW)
+        }
+        canvas.drawPath(stripPath, fillPaint)
+
+        textPaint.apply {
+            textSize = 9f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+            color = 0xFF0F172A.toInt()
+        }
+        canvas.drawText("SESSION SUMMARY & OFFICIAL TELEMETRY", MARGIN_X + 16f, startY + 18f, textPaint)
+
+        textPaint.apply {
+            textSize = 7.5f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+            color = 0xFF64748B.toInt()
+        }
+        canvas.drawText("Workout: ${session.title} • Date: ${TimeFormatter.formatDate(session.timestamp)}", MARGIN_X + 16f, startY + 30f, textPaint)
+
+        val cardHeight = endY - startY
+        if (cardHeight > 75f) {
+            val col1X = MARGIN_X + 16f
+            val col2X = MARGIN_X + 185f
+            val col3X = MARGIN_X + 355f
+            val metricsY = startY + 48f
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF64748B.toInt()
+            }
+            canvas.drawText("SESSION DURATION", col1X, metricsY, textPaint)
+            textPaint.apply {
+                textSize = 10.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF059669.toInt()
+            }
+            canvas.drawText(TimeFormatter.format(session.durationMillis, precisionMode), col1X, metricsY + 16f, textPaint)
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF64748B.toInt()
+            }
+            canvas.drawText("FASTEST RECORDED LAP", col2X, metricsY, textPaint)
+            textPaint.apply {
+                textSize = 10.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFFFFB800.toInt()
+            }
+            val bestStr = if (session.bestLapMillis > 0) TimeFormatter.format(session.bestLapMillis, precisionMode) else "--"
+            canvas.drawText(bestStr, col2X, metricsY + 16f, textPaint)
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF64748B.toInt()
+            }
+            canvas.drawText("SESSION INTEGRITY", col3X, metricsY, textPaint)
+            textPaint.apply {
+                textSize = 9.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                color = 0xFF0284C7.toInt()
+            }
+            canvas.drawText("Verified • Precision Timing", col3X, metricsY + 16f, textPaint)
+        }
+
+        if (cardHeight > 140f) {
+            val signY = endY - 24f
+            strokePaint.apply {
+                color = 0xFFCBD5E1.toInt()
+                strokeWidth = 0.8f
+            }
+            canvas.drawLine(MARGIN_X + 16f, signY, MARGIN_X + 220f, signY, strokePaint)
+            canvas.drawLine(PAGE_WIDTH - MARGIN_X - 220f, signY, PAGE_WIDTH - MARGIN_X - 16f, signY, strokePaint)
+
+            textPaint.apply {
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+                color = 0xFF94A3B8.toInt()
+            }
+            canvas.drawText("Athlete Signature", MARGIN_X + 16f, signY + 12f, textPaint)
+            canvas.drawText("Official Verification", PAGE_WIDTH - MARGIN_X - 220f, signY + 12f, textPaint)
+        }
     }
 
     // ─────────────────────────────────────────────────────────────

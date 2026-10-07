@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -26,9 +27,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
@@ -43,9 +44,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.model.AppScreen
 import com.example.model.PrecisionMode
 import com.example.model.StopwatchState
@@ -75,6 +78,7 @@ fun StopwatchScreen(
     themeMode: ThemeMode,
     onThemeChanged: (ThemeMode) -> Unit,
     onNavigateTo: (AppScreen) -> Unit,
+    onLockScreen: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by stopwatchManager.state.collectAsState()
@@ -115,24 +119,13 @@ fun StopwatchScreen(
         ) {
             // App Logo + Title
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    contentAlignment = Alignment.Center,
+                Image(
+                    painter = painterResource(id = R.drawable.ic_app_logo),
+                    contentDescription = "Arvexa Stopwatch Icon",
                     modifier = Modifier
                         .size(38.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(BrandPurple, BrandCyan, BrandEmerald)
-                            )
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ElectricBolt,
-                        contentDescription = "Arvexa Logo",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                        .clip(RoundedCornerShape(10.dp))
+                )
 
                 Spacer(modifier = Modifier.width(10.dp))
 
@@ -417,13 +410,13 @@ fun StopwatchScreen(
                         onClick = { stopwatchManager.pause() }
                     )
 
-                    // STOP & SAVE Button
+                    // LOCK Screen Button
                     SecondaryActionButton(
-                        text = "STOP",
-                        icon = Icons.Default.Stop,
-                        gradient = Brush.horizontalGradient(listOf(BrandPink, BrandViolet)),
-                        onClick = { stopwatchManager.stopAndSave() },
-                        testTag = "action_stop_button"
+                        text = "LOCK",
+                        icon = Icons.Default.Lock,
+                        gradient = Brush.horizontalGradient(listOf(BrandCyan, BrandPurple)),
+                        onClick = onLockScreen,
+                        testTag = "action_lock_button"
                     )
                 }
 

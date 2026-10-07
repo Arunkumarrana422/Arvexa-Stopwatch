@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,7 +74,15 @@ fun LapsScreen(
     val avgLapMillis by stopwatchManager.avgLapMillis.collectAsState()
     val elapsedMillis by stopwatchManager.elapsedMillis.collectAsState()
 
+    val listState = rememberLazyListState()
     var showClearDialog by remember { mutableStateOf(false) }
+
+    // When a new lap is added, smoothly animate-scroll to top so it is immediately visible
+    LaunchedEffect(laps.size) {
+        if (laps.isNotEmpty()) {
+            listState.animateScrollToItem(0)
+        }
+    }
 
     Column(
         modifier = modifier
@@ -274,6 +284,7 @@ fun LapsScreen(
             }
         } else {
             LazyColumn(
+                state = listState,
                 contentPadding = PaddingValues(bottom = 90.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.weight(1f)
@@ -286,7 +297,8 @@ fun LapsScreen(
                         lap = lap,
                         isBest = isBest,
                         isSlowest = isSlowest,
-                        precisionMode = precisionMode
+                        precisionMode = precisionMode,
+                        modifier = Modifier.animateItem()
                     )
                 }
             }

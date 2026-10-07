@@ -25,6 +25,7 @@ import com.example.data.SettingsRepository
 import com.example.model.AppScreen
 import com.example.service.StopwatchManager
 import com.example.ui.components.CustomBottomNav
+import com.example.ui.components.LockScreenOverlay
 import com.example.ui.screens.LapsScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.SplashScreen
@@ -43,69 +44,98 @@ fun RunStopApp(
     val laps by stopwatchManager.laps.collectAsState()
     var currentScreen by remember { mutableStateOf(AppScreen.STOPWATCH) }
     var showSplash by remember { mutableStateOf(true) }
+    var isScreenLocked by remember { mutableStateOf(false) }
 
     RunStopTheme(themeMode = settings.themeMode) {
         if (showSplash) {
             SplashScreen(onSplashFinished = { showSplash = false })
         } else {
             // Handle Android back button
-            BackHandler(enabled = currentScreen != AppScreen.STOPWATCH) {
+            BackHandler(enabled = !isScreenLocked && currentScreen != AppScreen.STOPWATCH) {
                 currentScreen = AppScreen.STOPWATCH
             }
 
-            Scaffold(
-                bottomBar = {
-                    CustomBottomNav(
-                        currentScreen = currentScreen,
-                        onScreenSelected = { currentScreen = it },
-                        lapCount = laps.size,
-                        hapticsEnabled = settings.hapticsEnabled
-                    )
-                },
-                modifier = modifier.fillMaxSize()
-            ) { innerPadding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(brush = AppTheme.backgroundGradient)
-                        .padding(innerPadding)
-                ) {
-                    if (settings.animationsEnabled) {
-                        AnimatedContent(
-                            targetState = currentScreen,
-                            transitionSpec = {
-                                val targetIndex = targetState.ordinal
-                                val initialIndex = initialState.ordinal
-                                val duration = 280
-                                if (targetIndex > initialIndex) {
-                                    (slideInHorizontally(
-                                        animationSpec = tween(duration, easing = FastOutSlowInEasing),
-                                        initialOffsetX = { it / 3 }
-                                    ) + fadeIn(animationSpec = tween(duration))) togetherWith
-                                            (slideOutHorizontally(
-                                                animationSpec = tween(duration, easing = FastOutSlowInEasing),
-                                                targetOffsetX = { -it / 3 }
-                                            ) + fadeOut(animationSpec = tween(duration / 2)))
-                                } else {
-                                    (slideInHorizontally(
-                                        animationSpec = tween(duration, easing = FastOutSlowInEasing),
-                                        initialOffsetX = { -it / 3 }
-                                    ) + fadeIn(animationSpec = tween(duration))) togetherWith
-                                            (slideOutHorizontally(
-                                                animationSpec = tween(duration, easing = FastOutSlowInEasing),
-                                                targetOffsetX = { it / 3 }
-                                            ) + fadeOut(animationSpec = tween(duration / 2)))
+            Box(modifier = modifier.fillMaxSize()) {
+                Scaffold(
+                    bottomBar = {
+                        CustomBottomNav(
+                            currentScreen = currentScreen,
+                            onScreenSelected = { currentScreen = it },
+                            lapCount = laps.size,
+                            hapticsEnabled = settings.hapticsEnabled
+                        )
+                    },
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(brush = AppTheme.backgroundGradient)
+                            .padding(innerPadding)
+                    ) {
+                        if (settings.animationsEnabled) {
+                            AnimatedContent(
+                                targetState = currentScreen,
+                                transitionSpec = {
+                                    val targetIndex = targetState.ordinal
+                                    val initialIndex = initialState.ordinal
+                                    val duration = 280
+                                    if (targetIndex > initialIndex) {
+                                        (slideInHorizontally(
+                                            animationSpec = tween(duration, easing = FastOutSlowInEasing),
+                                            initialOffsetX = { it / 3 }
+                                        ) + fadeIn(animationSpec = tween(duration))) togetherWith
+                                                (slideOutHorizontally(
+                                                    animationSpec = tween(duration, easing = FastOutSlowInEasing),
+                                                    targetOffsetX = { -it / 3 }
+                                                ) + fadeOut(animationSpec = tween(duration / 2)))
+                                    } else {
+                                        (slideInHorizontally(
+                                            animationSpec = tween(duration, easing = FastOutSlowInEasing),
+                                            initialOffsetX = { -it / 3 }
+                                        ) + fadeIn(animationSpec = tween(duration))) togetherWith
+                                                (slideOutHorizontally(
+                                                    animationSpec = tween(duration, easing = FastOutSlowInEasing),
+                                                    targetOffsetX = { it / 3 }
+                                                ) + fadeOut(animationSpec = tween(duration / 2)))
+                                    }
+                                },
+                                label = "screen_smooth_transition"
+                            ) { screen ->
+                                when (screen) {
+                                    AppScreen.STOPWATCH -> StopwatchScreen(
+                                        stopwatchManager = stopwatchManager,
+                                        precisionMode = settings.precision,
+                                        themeMode = settings.themeMode,
+                                        onThemeChanged = { settingsRepository.updateSettings(settings.copy(themeMode = it)) },
+                                        onNavigateTo = { currentScreen = it },
+                                        onLockScreen = { isScreenLocked = true }
+                                    )
+
+                                    AppScreen.LAPS -> LapsScreen(
+                                        stopwatchManager = stopwatchManager,
+                                        precisionMode = settings.precision
+                                    )
+
+                                    AppScreen.STATS -> StatsScreen(
+                                        stopwatchManager = stopwatchManager,
+                                        precisionMode = settings.precision
+                                    )
+
+                                    AppScreen.SETTINGS -> SettingsScreen(
+                                        settingsRepository = settingsRepository
+                                    )
                                 }
-                            },
-                            label = "screen_smooth_transition"
-                        ) { screen ->
-                            when (screen) {
+                            }
+                        } else {
+                            when (currentScreen) {
                                 AppScreen.STOPWATCH -> StopwatchScreen(
                                     stopwatchManager = stopwatchManager,
                                     precisionMode = settings.precision,
                                     themeMode = settings.themeMode,
                                     onThemeChanged = { settingsRepository.updateSettings(settings.copy(themeMode = it)) },
-                                    onNavigateTo = { currentScreen = it }
+                                    onNavigateTo = { currentScreen = it },
+                                    onLockScreen = { isScreenLocked = true }
                                 )
 
                                 AppScreen.LAPS -> LapsScreen(
@@ -123,31 +153,16 @@ fun RunStopApp(
                                 )
                             }
                         }
-                    } else {
-                        when (currentScreen) {
-                            AppScreen.STOPWATCH -> StopwatchScreen(
-                                stopwatchManager = stopwatchManager,
-                                precisionMode = settings.precision,
-                                themeMode = settings.themeMode,
-                                onThemeChanged = { settingsRepository.updateSettings(settings.copy(themeMode = it)) },
-                                onNavigateTo = { currentScreen = it }
-                            )
-
-                            AppScreen.LAPS -> LapsScreen(
-                                stopwatchManager = stopwatchManager,
-                                precisionMode = settings.precision
-                            )
-
-                            AppScreen.STATS -> StatsScreen(
-                                stopwatchManager = stopwatchManager,
-                                precisionMode = settings.precision
-                            )
-
-                            AppScreen.SETTINGS -> SettingsScreen(
-                                settingsRepository = settingsRepository
-                            )
-                        }
                     }
+                }
+
+                // Full-screen Lock Overlay protecting entire screen from accidental touch
+                if (isScreenLocked) {
+                    LockScreenOverlay(
+                        onUnlock = { isScreenLocked = false },
+                        stopwatchManager = stopwatchManager,
+                        precisionMode = settings.precision
+                    )
                 }
             }
         }

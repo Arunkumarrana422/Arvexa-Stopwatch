@@ -98,27 +98,20 @@ fun CustomBottomNav(
                     brush = AppTheme.bottomNavBorder,
                     shape = RoundedCornerShape(32.dp)
                 )
-                .padding(horizontal = 12.dp)
+                .padding(8.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().height(64.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 navItems.forEach { item ->
                     val isSelected = currentScreen == item.screen
 
-                    val itemScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.05f else 1.0f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        label = "nav_scale"
-                    )
-
                     val itemWidth by animateDpAsState(
-                        targetValue = if (isSelected) 98.dp else 56.dp,
+                        targetValue = if (isSelected) 96.dp else 50.dp,
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                         label = "nav_width"
                     )
@@ -134,7 +127,6 @@ fun CustomBottomNav(
                         modifier = Modifier
                             .height(48.dp)
                             .width(itemWidth)
-                            .scale(itemScale)
                             .clip(RoundedCornerShape(24.dp))
                             .background(
                                 brush = if (isSelected) {

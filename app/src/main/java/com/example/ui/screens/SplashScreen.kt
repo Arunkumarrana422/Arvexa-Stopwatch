@@ -3,6 +3,7 @@ package com.example.ui.screens
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,9 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ElectricBolt
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,15 +25,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.ui.theme.BackgroundDark
 import com.example.ui.theme.BrandCyan
-import com.example.ui.theme.BrandEmerald
-import com.example.ui.theme.BrandPurple
 import kotlinx.coroutines.delay
 
 @Composable
@@ -75,25 +72,14 @@ fun SplashScreen(
                 .scale(scale)
                 .alpha(alpha)
         ) {
-            // Gradient Icon Logo
-            Box(
-                contentAlignment = Alignment.Center,
+            // Official App Logo
+            Image(
+                painter = painterResource(id = R.drawable.ic_app_logo),
+                contentDescription = "Arvexa Stopwatch Icon",
                 modifier = Modifier
-                    .size(90.dp)
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(
-                        Brush.linearGradient(
-                            listOf(BrandPurple, BrandCyan, BrandEmerald)
-                        )
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ElectricBolt,
-                    contentDescription = "Arvexa Logo",
-                    tint = Color.White,
-                    modifier = Modifier.size(54.dp)
-                )
-            }
+                    .size(92.dp)
+                    .clip(RoundedCornerShape(22.dp))
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 

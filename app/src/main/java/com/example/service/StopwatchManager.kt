@@ -161,21 +161,11 @@ class StopwatchManager private constructor(private val appContext: Context) {
     }
 
     fun recordLap(): Lap? {
-        if (_state.value == StopwatchState.IDLE) return null
+        if (_state.value != StopwatchState.RUNNING) return null
 
-        val currentTotal = if (_state.value == StopwatchState.RUNNING) {
-            val now = SystemClock.elapsedRealtime()
-            accumulatedElapsed + (now - startTimestamp)
-        } else {
-            accumulatedElapsed
-        }
-
-        val currentLapTime = if (_state.value == StopwatchState.RUNNING) {
-            val now = SystemClock.elapsedRealtime()
-            lapAccumulated + (now - lapStartTimestamp)
-        } else {
-            lapAccumulated
-        }
+        val now = SystemClock.elapsedRealtime()
+        val currentTotal = accumulatedElapsed + (now - startTimestamp)
+        val currentLapTime = lapAccumulated + (now - lapStartTimestamp)
 
         val currentLapsList = _laps.value
         val lapNumber = currentLapsList.size + 1
@@ -191,7 +181,6 @@ class StopwatchManager private constructor(private val appContext: Context) {
         )
 
         // Reset lap timer
-        val now = SystemClock.elapsedRealtime()
         lapAccumulated = 0L
         lapStartTimestamp = now
         _currentLapMillis.value = 0L

@@ -125,7 +125,11 @@ class MainActivity : ComponentActivity() {
     private fun executeVolumeAction(action: VolumeAction) {
         when (action) {
             VolumeAction.START_PAUSE -> stopwatchManager.toggleStartPause()
-            VolumeAction.LAP -> stopwatchManager.recordLap()
+            VolumeAction.LAP -> {
+                if (stopwatchManager.state.value == com.example.model.StopwatchState.RUNNING) {
+                    stopwatchManager.recordLap()
+                }
+            }
             VolumeAction.STOP -> stopwatchManager.stopAndSave()
             VolumeAction.RESET -> stopwatchManager.reset()
             VolumeAction.NONE -> { /* No-op */ }

@@ -117,9 +117,9 @@ class StopwatchService : Service() {
         val lapStr = TimeFormatter.format(lapMillis, PrecisionMode.CENTISECONDS)
 
         val title = when (state) {
-            StopwatchState.RUNNING -> "RUNSTOP • Running"
-            StopwatchState.PAUSED -> "RUNSTOP • Paused"
-            StopwatchState.IDLE -> "RUNSTOP"
+            StopwatchState.RUNNING -> "ARVEXA • Running"
+            StopwatchState.PAUSED -> "ARVEXA • Paused"
+            StopwatchState.IDLE -> "ARVEXA"
         }
 
         val contentText = if (state == StopwatchState.RUNNING || state == StopwatchState.PAUSED) {
@@ -171,11 +171,6 @@ class StopwatchService : Service() {
             val resumeIntent = Intent(this, StopwatchService::class.java).apply { action = ACTION_RESUME }
             val resumePI = PendingIntent.getService(this, 4, resumeIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             builder.addAction(android.R.drawable.ic_media_play, "Resume", resumePI)
-
-            // Lap action
-            val lapIntent = Intent(this, StopwatchService::class.java).apply { action = ACTION_LAP }
-            val lapPI = PendingIntent.getService(this, 5, lapIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(android.R.drawable.ic_menu_agenda, "Lap", lapPI)
 
             // Reset action
             val resetIntent = Intent(this, StopwatchService::class.java).apply { action = ACTION_RESET }

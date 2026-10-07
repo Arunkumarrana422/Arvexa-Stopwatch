@@ -29,6 +29,7 @@ import com.example.model.AppScreen
 import com.example.service.StopwatchManager
 import com.example.ui.components.CustomBottomNav
 import com.example.ui.components.LockScreenOverlay
+import com.example.ui.screens.AllWorkoutsScreen
 import com.example.ui.screens.LapsScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.SplashScreen
@@ -56,8 +57,13 @@ fun RunStopApp(
         if (showSplash) {
             SplashScreen(onSplashFinished = { showSplash = false })
         } else {
-            // Handle Android back button: from other tabs, return to Timer (STOPWATCH) screen
-            BackHandler(enabled = !isScreenLocked && currentScreen != AppScreen.STOPWATCH) {
+            // From ALL_WORKOUTS screen, return to STATS screen
+            BackHandler(enabled = !isScreenLocked && currentScreen == AppScreen.ALL_WORKOUTS) {
+                currentScreen = AppScreen.STATS
+            }
+
+            // From other tabs, return to Timer (STOPWATCH) screen
+            BackHandler(enabled = !isScreenLocked && currentScreen != AppScreen.STOPWATCH && currentScreen != AppScreen.ALL_WORKOUTS) {
                 currentScreen = AppScreen.STOPWATCH
             }
 
@@ -75,12 +81,15 @@ fun RunStopApp(
             Box(modifier = modifier.fillMaxSize()) {
                 Scaffold(
                     bottomBar = {
-                        CustomBottomNav(
-                            currentScreen = currentScreen,
-                            onScreenSelected = { currentScreen = it },
-                            lapCount = laps.size,
-                            hapticsEnabled = settings.hapticsEnabled
-                        )
+                        // Hide bottom navigation buttons when on All Workouts screen
+                        if (currentScreen != AppScreen.ALL_WORKOUTS) {
+                            CustomBottomNav(
+                                currentScreen = currentScreen,
+                                onScreenSelected = { currentScreen = it },
+                                lapCount = laps.size,
+                                hapticsEnabled = settings.hapticsEnabled
+                            )
+                        }
                     },
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
@@ -136,7 +145,13 @@ fun RunStopApp(
 
                                     AppScreen.STATS -> StatsScreen(
                                         stopwatchManager = stopwatchManager,
-                                        precisionMode = settings.precision
+                                        precisionMode = settings.precision,
+                                        onViewAllClick = { currentScreen = AppScreen.ALL_WORKOUTS }
+                                    )
+
+                                    AppScreen.ALL_WORKOUTS -> AllWorkoutsScreen(
+                                        precisionMode = settings.precision,
+                                        onBack = { currentScreen = AppScreen.STATS }
                                     )
 
                                     AppScreen.SETTINGS -> SettingsScreen(
@@ -162,7 +177,13 @@ fun RunStopApp(
 
                                 AppScreen.STATS -> StatsScreen(
                                     stopwatchManager = stopwatchManager,
-                                    precisionMode = settings.precision
+                                    precisionMode = settings.precision,
+                                    onViewAllClick = { currentScreen = AppScreen.ALL_WORKOUTS }
+                                )
+
+                                AppScreen.ALL_WORKOUTS -> AllWorkoutsScreen(
+                                    precisionMode = settings.precision,
+                                    onBack = { currentScreen = AppScreen.STATS }
                                 )
 
                                 AppScreen.SETTINGS -> SettingsScreen(

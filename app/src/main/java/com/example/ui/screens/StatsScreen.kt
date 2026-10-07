@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -32,6 +34,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,6 +54,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,7 +80,8 @@ import kotlinx.coroutines.launch
 fun StatsScreen(
     stopwatchManager: StopwatchManager,
     precisionMode: PrecisionMode,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onViewAllClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -215,15 +220,28 @@ fun StatsScreen(
                 )
 
                 if (sessions.isNotEmpty()) {
-                    Text(
-                        text = "Clear All",
-                        color = BrandPink,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable {
-                            showClearAllDialog = true
-                        }
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onViewAllClick() }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .testTag("btn_view_all_history")
+                    ) {
+                        Text(
+                            text = "View All",
+                            color = BrandCyan,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "View All Workouts",
+                            tint = BrandCyan,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(10.dp))
@@ -264,7 +282,9 @@ fun StatsScreen(
                 }
             }
         } else {
-            items(sessions, key = { it.id }) { session ->
+            // Stats screen displays ONLY top 4 cards
+            val displayedSessions = sessions.take(4)
+            items(displayedSessions, key = { it.id }) { session ->
                 WorkoutSessionCard(
                     session = session,
                     precisionMode = precisionMode,
@@ -273,6 +293,36 @@ fun StatsScreen(
                     }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // If there are more than 4 workouts, show View All button at bottom of list
+            if (sessions.size > 4) {
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = onViewAllClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("btn_view_more_workouts"),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, BrandCyan.copy(alpha = 0.5f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = BrandCyan
+                        )
+                    ) {
+                        Text(
+                            text = "View All ${sessions.size} Workouts",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
         }
     }

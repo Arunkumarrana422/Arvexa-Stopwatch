@@ -54,5 +54,6 @@ enum class AppScreen(val title: String) {
     STOPWATCH("Stopwatch"),
     LAPS("Laps"),
     STATS("Stats"),
-    SETTINGS("Settings")
+    SETTINGS("Settings"),
+    ALL_WORKOUTS("Workouts")
 }

@@ -161,11 +161,6 @@ class StopwatchService : Service() {
             val lapIntent = Intent(this, StopwatchService::class.java).apply { action = ACTION_LAP }
             val lapPI = PendingIntent.getService(this, 2, lapIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             builder.addAction(android.R.drawable.ic_menu_agenda, "Lap", lapPI)
-
-            // Stop action
-            val stopIntent = Intent(this, StopwatchService::class.java).apply { action = ACTION_STOP }
-            val stopPI = PendingIntent.getService(this, 3, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPI)
         } else if (state == StopwatchState.PAUSED) {
             // Resume action
             val resumeIntent = Intent(this, StopwatchService::class.java).apply { action = ACTION_RESUME }

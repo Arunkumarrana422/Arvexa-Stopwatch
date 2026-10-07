@@ -10,11 +10,13 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
@@ -104,6 +106,25 @@ fun StopwatchScreen(
     val bestLap by stopwatchManager.bestLap.collectAsState()
     val avgLapMillis by stopwatchManager.avgLapMillis.collectAsState()
 
+    // Retain previous laps/stats during exit animation so content smoothly collapses rather than snapping to empty
+    var previousLaps by remember { mutableStateOf<List<com.example.model.Lap>>(emptyList()) }
+    if (laps.isNotEmpty()) {
+        previousLaps = laps
+    }
+    val displayLaps = if (laps.isNotEmpty()) laps else previousLaps
+
+    var previousBestLap by remember { mutableStateOf<com.example.model.Lap?>(null) }
+    if (bestLap != null) {
+        previousBestLap = bestLap
+    }
+    val displayBestLap = bestLap ?: previousBestLap
+
+    var previousAvgLap by remember { mutableStateOf(0L) }
+    if (avgLapMillis > 0) {
+        previousAvgLap = avgLapMillis
+    }
+    val displayAvgLap = if (avgLapMillis > 0) avgLapMillis else previousAvgLap
+
     val isDark = AppTheme.isDark
     val timeParts = TimeFormatter.getTimeParts(elapsedMillis, precisionMode)
     val lapParts = TimeFormatter.getTimeParts(currentLapMillis, precisionMode)
@@ -126,12 +147,6 @@ fun StopwatchScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
     ) {
         // TOP BAR
         Row(
@@ -325,105 +340,111 @@ fun StopwatchScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
-
         // QUICK STATS CHIPS (Best Lap & Avg Lap)
         AnimatedVisibility(
             visible = laps.isNotEmpty(),
-            enter = fadeIn(animationSpec = tween(350)) + expandVertically(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioLowBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
-            exit = fadeOut(animationSpec = tween(250)) + shrinkVertically(
+            enter = fadeIn(animationSpec = tween(350, easing = FastOutSlowInEasing)) + expandVertically(
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
+                    stiffness = Spring.StiffnessMediumLow
+                ),
+                expandFrom = Alignment.Top
+            ),
+            exit = fadeOut(animationSpec = tween(280, easing = FastOutSlowInEasing)) + shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                ),
+                shrinkTowards = Alignment.Top
             )
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(top = 10.dp)
             ) {
-                // Best Lap Chip (Rounded Ripple Clickable)
-                GlassCard(
-                    modifier = Modifier.weight(1f),
-                    cornerRadius = 14.dp,
-                    onClick = { onNavigateTo(AppScreen.LAPS) }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                    // Best Lap Chip (Rounded Ripple Clickable)
+                    GlassCard(
+                        modifier = Modifier.weight(1f),
+                        cornerRadius = 14.dp,
+                        onClick = { onNavigateTo(AppScreen.LAPS) }
                     ) {
-                        Column {
-                            Text(
-                                text = "BEST LAP",
-                                color = GoldBestLap,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = bestLap?.let { TimeFormatter.format(it.lapTimeMillis, precisionMode) } ?: "--:--",
-                                color = AppTheme.textPrimary,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column {
+                                Text(
+                                    text = "BEST LAP",
+                                    color = GoldBestLap,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.8.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = displayBestLap?.let { TimeFormatter.format(it.lapTimeMillis, precisionMode) } ?: "--:--",
+                                    color = AppTheme.textPrimary,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.EmojiEvents,
+                                contentDescription = "Best Lap",
+                                tint = GoldBestLap,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Default.EmojiEvents,
-                            contentDescription = "Best Lap",
-                            tint = GoldBestLap,
-                            modifier = Modifier.size(18.dp)
-                        )
                     }
-                }
 
-                // Total Laps Chip (Rounded Ripple Clickable)
-                GlassCard(
-                    modifier = Modifier.weight(1f),
-                    cornerRadius = 14.dp,
-                    onClick = { onNavigateTo(AppScreen.LAPS) }
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                    // Total Laps Chip (Rounded Ripple Clickable)
+                    GlassCard(
+                        modifier = Modifier.weight(1f),
+                        cornerRadius = 14.dp,
+                        onClick = { onNavigateTo(AppScreen.LAPS) }
                     ) {
-                        Column {
-                            Text(
-                                text = "AVG SPLIT",
-                                color = BrandCyan,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = if (avgLapMillis > 0) TimeFormatter.format(avgLapMillis, precisionMode) else "--:--",
-                                color = AppTheme.textPrimary,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column {
+                                Text(
+                                    text = "AVG SPLIT",
+                                    color = BrandCyan,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.8.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = if (displayAvgLap > 0) TimeFormatter.format(displayAvgLap, precisionMode) else "--:--",
+                                    color = AppTheme.textPrimary,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.Flag,
+                                contentDescription = "Total Laps",
+                                tint = BrandCyan,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Default.Flag,
-                            contentDescription = "Total Laps",
-                            tint = BrandCyan,
-                            modifier = Modifier.size(18.dp)
-                        )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // ACTION BUTTONS SECTION (Large Icon-Only Center Button with animated side buttons)
         Row(
@@ -433,7 +454,7 @@ fun StopwatchScreen(
                 .animateContentSize(
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessLow
+                        stiffness = Spring.StiffnessMediumLow
                     )
                 ),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -442,8 +463,20 @@ fun StopwatchScreen(
             // Left Action Button (LAP when RUNNING, RESET when PAUSED, animated in/out)
             AnimatedVisibility(
                 visible = state != StopwatchState.IDLE,
-                enter = fadeIn(animationSpec = tween(300)) + scaleIn(animationSpec = tween(300)),
-                exit = fadeOut(animationSpec = tween(200)) + scaleOut(animationSpec = tween(200))
+                enter = fadeIn(animationSpec = tween(300)) + scaleIn(animationSpec = tween(300)) + expandHorizontally(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    ),
+                    expandFrom = Alignment.CenterHorizontally
+                ),
+                exit = fadeOut(animationSpec = tween(220)) + scaleOut(animationSpec = tween(220)) + shrinkHorizontally(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    ),
+                    shrinkTowards = Alignment.CenterHorizontally
+                )
             ) {
                 if (state == StopwatchState.RUNNING) {
                     SecondaryActionButton(
@@ -488,8 +521,20 @@ fun StopwatchScreen(
             // Right Action Button (LOCK when RUNNING, SAVE when PAUSED, animated in/out)
             AnimatedVisibility(
                 visible = state != StopwatchState.IDLE,
-                enter = fadeIn(animationSpec = tween(300)) + scaleIn(animationSpec = tween(300)),
-                exit = fadeOut(animationSpec = tween(200)) + scaleOut(animationSpec = tween(200))
+                enter = fadeIn(animationSpec = tween(300)) + scaleIn(animationSpec = tween(300)) + expandHorizontally(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    ),
+                    expandFrom = Alignment.CenterHorizontally
+                ),
+                exit = fadeOut(animationSpec = tween(220)) + scaleOut(animationSpec = tween(220)) + shrinkHorizontally(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    ),
+                    shrinkTowards = Alignment.CenterHorizontally
+                )
             ) {
                 if (state == StopwatchState.RUNNING) {
                     SecondaryActionButton(
@@ -511,96 +556,102 @@ fun StopwatchScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
         // RECENT LAPS QUICK GLANCE (SHOWS 4 LAPS, ROUNDED RIPPLE EFFECT)
         AnimatedVisibility(
             visible = laps.isNotEmpty(),
-            enter = fadeIn(animationSpec = tween(350)) + expandVertically(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioLowBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
-            exit = fadeOut(animationSpec = tween(250)) + shrinkVertically(
+            enter = fadeIn(animationSpec = tween(350, easing = FastOutSlowInEasing)) + expandVertically(
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
+                    stiffness = Spring.StiffnessMediumLow
+                ),
+                expandFrom = Alignment.Top
+            ),
+            exit = fadeOut(animationSpec = tween(280, easing = FastOutSlowInEasing)) + shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                ),
+                shrinkTowards = Alignment.Top
             )
         ) {
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                onClick = { onNavigateTo(AppScreen.LAPS) }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
             ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "RECENT LAPS (${laps.size})",
-                            color = AppTheme.textSecondary,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-                        Text(
-                            text = "View All",
-                            color = BrandCyan,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Exactly 4 recent laps displayed
-                    val latestLaps = laps.take(4)
-                    latestLaps.forEach { lap ->
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 16.dp,
+                    onClick = { onNavigateTo(AppScreen.LAPS) }
+                ) {
+                    Column {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 3.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier
-                                        .size(22.dp)
-                                        .background(
-                                            if (isDark) Color(0xFF182238) else Color(0xFFE2E8F0),
-                                            CircleShape
+                            Text(
+                                text = "RECENT LAPS (${displayLaps.size})",
+                                color = AppTheme.textSecondary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "View All",
+                                color = BrandCyan,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Exactly 4 recent laps displayed
+                        val latestLaps = displayLaps.take(4)
+                        latestLaps.forEach { lap ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 3.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .size(22.dp)
+                                            .background(
+                                                if (isDark) Color(0xFF182238) else Color(0xFFE2E8F0),
+                                                CircleShape
+                                            )
+                                    ) {
+                                        Text(
+                                            text = "#${lap.lapNumber}",
+                                            color = AppTheme.textPrimary,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
                                         )
-                                ) {
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "#${lap.lapNumber}",
+                                        text = TimeFormatter.format(lap.lapTimeMillis, precisionMode),
                                         color = AppTheme.textPrimary,
-                                        fontSize = 10.sp,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+
+                                if (lap.diffFromPreviousMillis != 0L) {
+                                    val isFaster = lap.diffFromPreviousMillis < 0
+                                    Text(
+                                        text = TimeFormatter.formatLapDifference(lap.diffFromPreviousMillis),
+                                        color = if (isFaster) BrandEmerald else BrandPink,
+                                        fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = TimeFormatter.format(lap.lapTimeMillis, precisionMode),
-                                    color = AppTheme.textPrimary,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-
-                            if (lap.diffFromPreviousMillis != 0L) {
-                                val isFaster = lap.diffFromPreviousMillis < 0
-                                Text(
-                                    text = TimeFormatter.formatLapDifference(lap.diffFromPreviousMillis),
-                                    color = if (isFaster) BrandEmerald else BrandPink,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
                             }
                         }
                     }

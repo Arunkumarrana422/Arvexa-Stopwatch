@@ -7,13 +7,17 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -83,10 +87,39 @@ fun StopwatchRing(
         )
     )
 
+    val dialDiameter = size - 30.dp
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.size(size)
     ) {
+        // Watch dial circular surface with soft, elegant shadow in light mode
+        Box(
+            modifier = Modifier
+                .size(dialDiameter)
+                .then(
+                    if (!isDark) {
+                        Modifier.shadow(
+                            elevation = 8.dp,
+                            shape = CircleShape,
+                            ambientColor = Color(0x1A0F172A),
+                            spotColor = Color(0x240F172A)
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
+                .background(
+                    color = if (!isDark) Color.White else Color(0x140F172A),
+                    shape = CircleShape
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (!isDark) Color(0x1F94A3B8) else Color(0x1A38BDF8),
+                    shape = CircleShape
+                )
+        )
+
         Canvas(modifier = Modifier.fillMaxSize()) {
             val canvasSize = this.size.minDimension
             val center = Offset(this.size.width / 2f, this.size.height / 2f)

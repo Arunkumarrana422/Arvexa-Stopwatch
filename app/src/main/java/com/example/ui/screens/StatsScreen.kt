@@ -656,33 +656,13 @@ fun WorkoutSessionCard(
                 }
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                val context = LocalContext.current
-                GlassIconButton(
-                    icon = Icons.Default.Share,
-                    contentDescription = "Share session PDF",
-                    tint = BrandCyan,
-                    onClick = {
-                        LapPdfGenerator.generateAndShareSingleWorkoutSessionReport(
-                            context = context,
-                            session = session,
-                            precisionMode = precisionMode
-                        )
-                    },
-                    size = 36.dp
-                )
-
-                GlassIconButton(
-                    icon = Icons.Default.Delete,
-                    contentDescription = "Delete session",
-                    tint = Color(0xFF8899B5),
-                    onClick = onDelete,
-                    size = 36.dp
-                )
-            }
+            GlassIconButton(
+                icon = Icons.Default.Delete,
+                contentDescription = "Delete session",
+                tint = Color(0xFF8899B5),
+                onClick = onDelete,
+                size = 36.dp
+            )
         }
     }
 }

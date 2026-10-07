@@ -27,7 +27,6 @@ import kotlin.math.abs
 object LapPdfGenerator {
 
     private const val PAGE_WIDTH = 595 // A4 standard width in points
-    private const val PAGE_HEIGHT = 842 // A4 standard height in points
     private const val MARGIN_X = 28f
 
     // ─────────────────────────────────────────────────────────────
@@ -130,8 +129,8 @@ object LapPdfGenerator {
             style = Paint.Style.STROKE
         }
 
-        val lapsOnFirstPage = 22
-        val lapsOnSubsequentPages = 30
+        val lapsOnFirstPage = 24
+        val lapsOnSubsequentPages = 32
         val remainingLaps = (laps.size - lapsOnFirstPage).coerceAtLeast(0)
         val totalPages = if (laps.size <= lapsOnFirstPage) 1 else 1 + ((remainingLaps + lapsOnSubsequentPages - 1) / lapsOnSubsequentPages)
 
@@ -139,12 +138,23 @@ object LapPdfGenerator {
         val currentDateStr = SimpleDateFormat("dd MMM yyyy • HH:mm", Locale.US).format(Date())
 
         for (pageNum in 1..totalPages) {
-            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNum).create()
+            val lapsToDraw = if (pageNum == 1) lapsOnFirstPage else lapsOnSubsequentPages
+            val endIndex = (lapIndex + lapsToDraw).coerceAtMost(laps.size)
+            val countThisPage = endIndex - lapIndex
+            val rowHeight = 22f
+
+            val tableHeaderY = if (pageNum == 1) 210f else 56f
+            val tableStartY = tableHeaderY + 24f
+            val tableEndY = tableStartY + (countThisPage * rowHeight)
+            val footerY = tableEndY + 16f
+            val pageHeight = (footerY + 28f).toInt()
+
+            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, pageHeight, pageNum).create()
             val page = pdfDocument.startPage(pageInfo)
             val canvas = page.canvas
 
             fillPaint.color = Color.WHITE
-            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), PAGE_HEIGHT.toFloat(), fillPaint)
+            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), pageHeight.toFloat(), fillPaint)
 
             var currentY: Float
 
@@ -194,10 +204,6 @@ object LapPdfGenerator {
             drawTableHeader(canvas, fillPaint, textPaint, currentY)
             currentY += 24f
 
-            val lapsToDraw = if (pageNum == 1) lapsOnFirstPage else lapsOnSubsequentPages
-            val endIndex = (lapIndex + lapsToDraw).coerceAtMost(laps.size)
-            val rowHeight = 22f
-
             for (i in lapIndex until endIndex) {
                 val lap = laps[i]
                 val isAlternate = (i % 2 == 1)
@@ -221,7 +227,7 @@ object LapPdfGenerator {
             }
             lapIndex = endIndex
 
-            drawPageFooter(canvas, strokePaint, textPaint, pageNum, totalPages)
+            drawPageFooter(canvas, strokePaint, textPaint, footerY, pageNum, totalPages)
             pdfDocument.finishPage(page)
         }
 
@@ -248,7 +254,7 @@ object LapPdfGenerator {
             style = Paint.Style.STROKE
         }
 
-        val sessionsOnFirstPage = 18
+        val sessionsOnFirstPage = 20
         val sessionsOnSubsequentPages = 26
         val remaining = (sessions.size - sessionsOnFirstPage).coerceAtLeast(0)
         val totalPages = if (sessions.size <= sessionsOnFirstPage) 1 else 1 + ((remaining + sessionsOnSubsequentPages - 1) / sessionsOnSubsequentPages)
@@ -261,12 +267,23 @@ object LapPdfGenerator {
         val bestEver = sessions.map { it.bestLapMillis }.filter { it > 0 }.minOrNull() ?: 0L
 
         for (pageNum in 1..totalPages) {
-            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNum).create()
+            val countToDraw = if (pageNum == 1) sessionsOnFirstPage else sessionsOnSubsequentPages
+            val endIndex = (sessionIndex + countToDraw).coerceAtMost(sessions.size)
+            val countThisPage = endIndex - sessionIndex
+            val rowHeight = 26f
+
+            val tableHeaderY = if (pageNum == 1) 210f else 56f
+            val tableStartY = tableHeaderY + 24f
+            val tableEndY = tableStartY + (countThisPage * rowHeight)
+            val footerY = tableEndY + 16f
+            val pageHeight = (footerY + 28f).toInt()
+
+            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, pageHeight, pageNum).create()
             val page = pdfDocument.startPage(pageInfo)
             val canvas = page.canvas
 
             fillPaint.color = Color.WHITE
-            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), PAGE_HEIGHT.toFloat(), fillPaint)
+            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), pageHeight.toFloat(), fillPaint)
 
             var currentY: Float
 
@@ -316,10 +333,6 @@ object LapPdfGenerator {
             drawWorkoutTableHeader(canvas, fillPaint, textPaint, currentY)
             currentY += 24f
 
-            val countToDraw = if (pageNum == 1) sessionsOnFirstPage else sessionsOnSubsequentPages
-            val endIndex = (sessionIndex + countToDraw).coerceAtMost(sessions.size)
-            val rowHeight = 26f
-
             for (i in sessionIndex until endIndex) {
                 val session = sessions[i]
                 val isAlternate = (i % 2 == 1)
@@ -339,7 +352,7 @@ object LapPdfGenerator {
             }
             sessionIndex = endIndex
 
-            drawPageFooter(canvas, strokePaint, textPaint, pageNum, totalPages)
+            drawPageFooter(canvas, strokePaint, textPaint, footerY, pageNum, totalPages)
             pdfDocument.finishPage(page)
         }
 
@@ -367,8 +380,8 @@ object LapPdfGenerator {
         }
 
         val lapLines = session.lapsData.lines().filter { it.isNotBlank() }
-        val lapsOnFirstPage = 22
-        val lapsOnSubsequentPages = 30
+        val lapsOnFirstPage = 24
+        val lapsOnSubsequentPages = 32
         val remaining = (lapLines.size - lapsOnFirstPage).coerceAtLeast(0)
         val totalPages = if (lapLines.size <= lapsOnFirstPage) 1 else 1 + ((remaining + lapsOnSubsequentPages - 1) / lapsOnSubsequentPages)
 
@@ -376,12 +389,24 @@ object LapPdfGenerator {
         val sessionDateStr = TimeFormatter.formatDate(session.timestamp)
 
         for (pageNum in 1..totalPages) {
-            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNum).create()
+            val countToDraw = if (pageNum == 1) lapsOnFirstPage else lapsOnSubsequentPages
+            val endIndex = (lapIndex + countToDraw).coerceAtMost(lapLines.size)
+            val countThisPage = endIndex - lapIndex
+            val rowHeight = 22f
+
+            val tableHeaderY = if (pageNum == 1) 210f else 56f
+            val hasLaps = lapLines.isNotEmpty()
+            val tableStartY = if (hasLaps) tableHeaderY + 24f else tableHeaderY
+            val tableEndY = tableStartY + (countThisPage * rowHeight)
+            val footerY = tableEndY + 16f
+            val pageHeight = (footerY + 28f).toInt()
+
+            val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, pageHeight, pageNum).create()
             val page = pdfDocument.startPage(pageInfo)
             val canvas = page.canvas
 
             fillPaint.color = Color.WHITE
-            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), PAGE_HEIGHT.toFloat(), fillPaint)
+            canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), pageHeight.toFloat(), fillPaint)
 
             var currentY: Float
 
@@ -426,13 +451,9 @@ object LapPdfGenerator {
                 currentY = 56f
             }
 
-            if (lapLines.isNotEmpty()) {
+            if (hasLaps) {
                 drawSingleSessionTableHeader(canvas, fillPaint, textPaint, currentY)
                 currentY += 24f
-
-                val countToDraw = if (pageNum == 1) lapsOnFirstPage else lapsOnSubsequentPages
-                val endIndex = (lapIndex + countToDraw).coerceAtMost(lapLines.size)
-                val rowHeight = 22f
 
                 for (i in lapIndex until endIndex) {
                     val line = lapLines[i]
@@ -452,7 +473,7 @@ object LapPdfGenerator {
                 lapIndex = endIndex
             }
 
-            drawPageFooter(canvas, strokePaint, textPaint, pageNum, totalPages)
+            drawPageFooter(canvas, strokePaint, textPaint, footerY, pageNum, totalPages)
             pdfDocument.finishPage(page)
         }
 
@@ -1062,11 +1083,10 @@ object LapPdfGenerator {
         canvas: android.graphics.Canvas,
         strokePaint: Paint,
         textPaint: Paint,
+        footerY: Float,
         pageNum: Int,
         totalPages: Int
     ) {
-        val footerY = 810f
-
         strokePaint.apply {
             color = 0xFFE2E8F0.toInt()
             strokeWidth = 0.8f
@@ -1078,10 +1098,10 @@ object LapPdfGenerator {
             typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
             color = 0xFF94A3B8.toInt()
         }
-        canvas.drawText("Generated by Arvexa Stopwatch Pro • High Precision Timing System", MARGIN_X, footerY + 14f, textPaint)
+        canvas.drawText("Generated by Arvexa Stopwatch Pro • High Precision Timing System", MARGIN_X, footerY + 13f, textPaint)
 
         val pageStr = "Page $pageNum of $totalPages"
-        canvas.drawText(pageStr, PAGE_WIDTH - MARGIN_X - 60f, footerY + 14f, textPaint)
+        canvas.drawText(pageStr, PAGE_WIDTH - MARGIN_X - 60f, footerY + 13f, textPaint)
     }
 
     // ─────────────────────────────────────────────────────────────

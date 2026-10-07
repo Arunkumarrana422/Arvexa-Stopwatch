@@ -30,26 +30,30 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.shadow
 import com.example.R
-import com.example.ui.theme.BackgroundDark
+import com.example.ui.theme.AppTheme
 import com.example.ui.theme.BrandCyan
+import com.example.ui.theme.BrandPurple
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
     onSplashFinished: () -> Unit
 ) {
+    val isDark = AppTheme.isDark
     var startAnimation by remember { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0.5f,
-        animationSpec = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 850, easing = FastOutSlowInEasing),
         label = "splash_scale"
     )
 
     val alpha by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 800),
+        animationSpec = tween(durationMillis = 750),
         label = "splash_alpha"
     )
 
@@ -63,7 +67,7 @@ fun SplashScreen(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(brush = AppTheme.backgroundGradient)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -77,15 +81,25 @@ fun SplashScreen(
                 painter = painterResource(id = R.drawable.ic_app_logo),
                 contentDescription = "Arvexa Stopwatch Icon",
                 modifier = Modifier
-                    .size(92.dp)
-                    .clip(RoundedCornerShape(22.dp))
+                    .size(96.dp)
+                    .shadow(
+                        elevation = if (isDark) 16.dp else 12.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        spotColor = if (isDark) BrandCyan.copy(alpha = 0.5f) else Color(0x336C5CE7)
+                    )
+                    .clip(RoundedCornerShape(24.dp))
+                    .border(
+                        width = 1.dp,
+                        color = if (isDark) Color(0x3300C2FF) else Color(0x336C5CE7),
+                        shape = RoundedCornerShape(24.dp)
+                    )
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = "ARVEXA",
-                color = Color.White,
+                color = AppTheme.textPrimary,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 4.sp
@@ -95,7 +109,7 @@ fun SplashScreen(
 
             Text(
                 text = "Arvexa Stopwatch",
-                color = BrandCyan,
+                color = if (isDark) BrandCyan else BrandPurple,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.sp

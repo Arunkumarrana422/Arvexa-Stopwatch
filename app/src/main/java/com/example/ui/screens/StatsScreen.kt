@@ -28,12 +28,19 @@ import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,8 +81,12 @@ fun StatsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val database = AppDatabase.getInstance(context)
+    val isDark = AppTheme.isDark
     val sessions by database.workoutSessionDao().getAllSessions().collectAsState(initial = emptyList())
     val activeLaps by stopwatchManager.laps.collectAsState()
+
+    var showClearAllDialog by remember { mutableStateOf(false) }
+    var sessionToDelete by remember { mutableStateOf<WorkoutSession?>(null) }
 
     // Calculated overall stats
     val totalSessions = sessions.size
@@ -210,9 +221,7 @@ fun StatsScreen(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
-                            scope.launch(Dispatchers.IO) {
-                                database.workoutSessionDao().clearAllSessions()
-                            }
+                            showClearAllDialog = true
                         }
                     )
                 }
@@ -260,14 +269,80 @@ fun StatsScreen(
                     session = session,
                     precisionMode = precisionMode,
                     onDelete = {
-                        scope.launch(Dispatchers.IO) {
-                            database.workoutSessionDao().deleteSession(session)
-                        }
+                        sessionToDelete = session
                     }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
+    }
+
+    // Confirmation Dialog for Clearing All Sessions
+    if (showClearAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearAllDialog = false },
+            containerColor = if (isDark) Color(0xFF131D33) else Color(0xFFFFFFFF),
+            titleContentColor = AppTheme.textPrimary,
+            textContentColor = AppTheme.textSecondary,
+            title = {
+                Text("Clear All Workouts?", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text("Are you sure you want to delete all saved workout records? This action cannot be undone.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch(Dispatchers.IO) {
+                            database.workoutSessionDao().clearAllSessions()
+                        }
+                        showClearAllDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandPink)
+                ) {
+                    Text("Clear All", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearAllDialog = false }) {
+                    Text("Cancel", color = AppTheme.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Confirmation Dialog for Deleting Single Workout Session
+    sessionToDelete?.let { session ->
+        AlertDialog(
+            onDismissRequest = { sessionToDelete = null },
+            containerColor = if (isDark) Color(0xFF131D33) else Color(0xFFFFFFFF),
+            titleContentColor = AppTheme.textPrimary,
+            textContentColor = AppTheme.textSecondary,
+            title = {
+                Text("Delete Workout?", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text("Are you sure you want to delete '${session.title}'? This workout record will be permanently deleted.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch(Dispatchers.IO) {
+                            database.workoutSessionDao().deleteSession(session)
+                        }
+                        sessionToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandPink)
+                ) {
+                    Text("Delete", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { sessionToDelete = null }) {
+                    Text("Cancel", color = AppTheme.textSecondary)
+                }
+            }
+        )
     }
 }
 

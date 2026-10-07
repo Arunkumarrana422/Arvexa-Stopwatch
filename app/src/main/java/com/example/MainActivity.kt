@@ -32,6 +32,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Dismiss Android 12+ system splash screen immediately so our custom splash screen takes over
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            splashScreen.setOnExitAnimationListener { splashScreenView ->
+                splashScreenView.remove()
+            }
+        }
+
         enableEdgeToEdge()
 
         stopwatchManager = StopwatchManager.getInstance(applicationContext)

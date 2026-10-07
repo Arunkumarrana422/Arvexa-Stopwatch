@@ -277,6 +277,13 @@ class StopwatchManager private constructor(private val appContext: Context) {
         persistCurrentState()
     }
 
+    fun deleteLap(lapNumber: Int) {
+        val updated = _laps.value.filterNot { it.lapNumber == lapNumber }
+        _laps.value = updated
+        recalculateLapStats(updated)
+        persistCurrentState()
+    }
+
     private fun persistCurrentState() {
         settingsRepo.saveActiveSession(
             state = _state.value,

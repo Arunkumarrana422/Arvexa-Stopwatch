@@ -33,11 +33,18 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +52,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -92,6 +101,8 @@ fun StopwatchScreen(
     val timeParts = TimeFormatter.getTimeParts(elapsedMillis, precisionMode)
     val lapParts = TimeFormatter.getTimeParts(currentLapMillis, precisionMode)
 
+    var showResetDialog by remember { mutableStateOf(false) }
+
     val infiniteTransition = rememberInfiniteTransition(label = "pulse_status")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.9f,
@@ -117,7 +128,7 @@ fun StopwatchScreen(
                 .fillMaxWidth()
                 .padding(top = 16.dp, bottom = 8.dp)
         ) {
-            // App Logo + Title
+            // App Logo + Title (perfectly vertically aligned with logo height)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_app_logo),
@@ -129,20 +140,34 @@ fun StopwatchScreen(
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                Column {
+                Column(
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.height(38.dp)
+                ) {
                     Text(
                         text = "ARVEXA",
                         color = AppTheme.textPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 2.sp
+                        letterSpacing = 2.sp,
+                        style = TextStyle(
+                            platformStyle = PlatformTextStyle(
+                                includeFontPadding = false
+                            )
+                        )
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "PRO STOPWATCH",
                         color = BrandCyan,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.2.sp
+                        letterSpacing = 1.2.sp,
+                        style = TextStyle(
+                            platformStyle = PlatformTextStyle(
+                                includeFontPadding = false
+                            )
+                        )
                     )
                 }
             }
@@ -421,7 +446,7 @@ fun StopwatchScreen(
                 }
 
                 StopwatchState.PAUSED -> {
-                    // RESET Button
+                    // RESET Button with Confirmation Dialog
                     SecondaryActionButton(
                         text = "RESET",
                         icon = Icons.Default.Refresh,
@@ -429,7 +454,13 @@ fun StopwatchScreen(
                             if (isDark) listOf(Color(0xFF6B7280), Color(0xFF4B5563))
                             else listOf(Color(0xFF94A3B8), Color(0xFF64748B))
                         ),
-                        onClick = { stopwatchManager.reset() },
+                        onClick = {
+                            if (elapsedMillis > 0 || laps.isNotEmpty()) {
+                                showResetDialog = true
+                            } else {
+                                stopwatchManager.reset()
+                            }
+                        },
                         testTag = "action_reset_button"
                     )
 
@@ -533,5 +564,37 @@ fun StopwatchScreen(
                 }
             }
         }
+    }
+
+    // Confirmation Dialog for Resetting Stopwatch
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            containerColor = if (isDark) Color(0xFF131D33) else Color(0xFFFFFFFF),
+            titleContentColor = AppTheme.textPrimary,
+            textContentColor = AppTheme.textSecondary,
+            title = {
+                Text("Reset Stopwatch?", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text("Are you sure you want to reset the stopwatch session? All elapsed time and recorded laps will be cleared.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        stopwatchManager.reset()
+                        showResetDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandPink)
+                ) {
+                    Text("Reset", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("Cancel", color = AppTheme.textSecondary)
+                }
+            }
+        )
     }
 }

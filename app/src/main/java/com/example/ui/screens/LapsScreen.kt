@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Flag
@@ -29,6 +30,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -76,6 +78,7 @@ fun LapsScreen(
 
     val listState = rememberLazyListState()
     var showClearDialog by remember { mutableStateOf(false) }
+    var lapToDelete by remember { mutableStateOf<Lap?>(null) }
 
     // When a new lap is added, smoothly animate-scroll to top so it is immediately visible
     LaunchedEffect(laps.size) {
@@ -298,6 +301,7 @@ fun LapsScreen(
                         isBest = isBest,
                         isSlowest = isSlowest,
                         precisionMode = precisionMode,
+                        onDelete = { lapToDelete = lap },
                         modifier = Modifier.animateItem()
                     )
                 }
@@ -312,7 +316,7 @@ fun LapsScreen(
             containerColor = if (isDark) Color(0xFF131D33) else Color(0xFFFFFFFF),
             titleContentColor = AppTheme.textPrimary,
             textContentColor = AppTheme.textSecondary,
-            title = { Text("Clear All Laps?") },
+            title = { Text("Clear All Laps?", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to clear all ${laps.size} recorded laps for this session? The total timer will continue running.") },
             confirmButton = {
                 Button(
@@ -322,11 +326,39 @@ fun LapsScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = BrandPink)
                 ) {
-                    Text("Clear", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Clear All", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) {
+                    Text("Cancel", color = AppTheme.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Confirmation Dialog for Deleting Single Lap
+    lapToDelete?.let { lap ->
+        AlertDialog(
+            onDismissRequest = { lapToDelete = null },
+            containerColor = if (isDark) Color(0xFF131D33) else Color(0xFFFFFFFF),
+            titleContentColor = AppTheme.textPrimary,
+            textContentColor = AppTheme.textSecondary,
+            title = { Text("Delete Lap ${lap.lapNumber}?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete Lap ${lap.lapNumber} (${TimeFormatter.format(lap.lapTimeMillis, precisionMode)}) from this session?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        stopwatchManager.deleteLap(lap.lapNumber)
+                        lapToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandPink)
+                ) {
+                    Text("Delete", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { lapToDelete = null }) {
                     Text("Cancel", color = AppTheme.textSecondary)
                 }
             }
@@ -340,6 +372,7 @@ fun LapCard(
     isBest: Boolean,
     isSlowest: Boolean,
     precisionMode: PrecisionMode,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isDark = AppTheme.isDark
@@ -450,23 +483,40 @@ fun LapCard(
                 }
             }
 
-            // Right: Split Time & Delta Difference
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = TimeFormatter.format(lap.lapTimeMillis, precisionMode),
-                    color = if (isBest) BrandEmerald else AppTheme.textPrimary,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                if (lap.diffFromPreviousMillis != 0L) {
-                    val isFaster = lap.diffFromPreviousMillis < 0
+            // Right: Split Time & Delta Difference + Delete action
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = TimeFormatter.formatLapDifference(lap.diffFromPreviousMillis),
-                        color = if (isFaster) BrandEmerald else BrandPink,
-                        fontSize = 11.sp,
+                        text = TimeFormatter.format(lap.lapTimeMillis, precisionMode),
+                        color = if (isBest) BrandEmerald else AppTheme.textPrimary,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold
                     )
+
+                    if (lap.diffFromPreviousMillis != 0L) {
+                        val isFaster = lap.diffFromPreviousMillis < 0
+                        Text(
+                            text = TimeFormatter.formatLapDifference(lap.diffFromPreviousMillis),
+                            color = if (isFaster) BrandEmerald else BrandPink,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                if (onDelete != null) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Delete lap",
+                            tint = Color(0xFF94A3B8),
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
                 }
             }
         }
@@ -481,7 +531,7 @@ private fun buildShareReport(
     precisionMode: PrecisionMode
 ): String {
     val sb = StringBuilder()
-    sb.append("RUNSTOP • Stopwatch Lap Report\n")
+    sb.append("ARVEXA STOPWATCH • Lap Report\n")
     sb.append("════════════════════════════════\n")
     sb.append("Total Time: ${TimeFormatter.format(totalMillis, precisionMode)}\n")
     sb.append("Total Laps: ${laps.size}\n")
@@ -496,6 +546,6 @@ private fun buildShareReport(
         val diff = if (lap.diffFromPreviousMillis != 0L) " (${TimeFormatter.formatLapDifference(lap.diffFromPreviousMillis)})" else ""
         sb.append("Lap ${lap.lapNumber}: ${TimeFormatter.format(lap.lapTimeMillis, precisionMode)}$diff • Total: ${TimeFormatter.format(lap.totalTimeMillis, precisionMode)}\n")
     }
-    sb.append("\nTracked with RunStop – Runner Stopwatch")
+    sb.append("\nTracked with Arvexa Stopwatch")
     return sb.toString()
 }

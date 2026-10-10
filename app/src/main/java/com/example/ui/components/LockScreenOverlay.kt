@@ -3,11 +3,16 @@ package com.example.ui.components
 import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -260,17 +265,38 @@ fun LockScreenOverlay(
                 } else {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .animateContentSize(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            )
                     ) {
                         recentLaps.forEach { lap ->
-                            val isBest = lap.id == bestLap?.id && laps.size > 1
-                            val isSlowest = lap.id == slowestLap?.id && laps.size > 1
-                            LockScreenLapCard(
-                                lap = lap,
-                                isBest = isBest,
-                                isSlowest = isSlowest,
-                                precisionMode = precisionMode
-                            )
+                            androidx.compose.runtime.key(lap.id) {
+                                val isBest = lap.id == bestLap?.id && laps.size > 1
+                                val isSlowest = lap.id == slowestLap?.id && laps.size > 1
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = fadeIn(animationSpec = tween(350, easing = FastOutSlowInEasing)) + expandVertically(
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        ),
+                                        expandFrom = Alignment.Top
+                                    ),
+                                    exit = fadeOut(animationSpec = tween(200)) + shrinkVertically()
+                                ) {
+                                    LockScreenLapCard(
+                                        lap = lap,
+                                        isBest = isBest,
+                                        isSlowest = isSlowest,
+                                        precisionMode = precisionMode
+                                    )
+                                }
+                            }
                         }
                     }
                 }

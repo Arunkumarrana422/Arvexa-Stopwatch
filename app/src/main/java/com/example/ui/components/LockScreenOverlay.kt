@@ -21,13 +21,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.VolumeUp
@@ -58,10 +61,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.model.Lap
 import com.example.model.PrecisionMode
 import com.example.service.StopwatchManager
 import com.example.ui.theme.BrandCyan
 import com.example.ui.theme.BrandEmerald
+import com.example.ui.theme.BrandPink
 import com.example.ui.theme.BrandPurple
 import com.example.util.HapticHelper
 import com.example.util.TimeFormatter
@@ -78,6 +83,9 @@ fun LockScreenOverlay(
     val context = LocalContext.current
     val elapsedMillis by stopwatchManager.elapsedMillis.collectAsState()
     val timeParts = TimeFormatter.getTimeParts(elapsedMillis, precisionMode)
+    val laps by stopwatchManager.laps.collectAsState()
+    val bestLap by stopwatchManager.bestLap.collectAsState()
+    val slowestLap by stopwatchManager.slowestLap.collectAsState()
 
     var isHolding by remember { mutableStateOf(false) }
     var holdProgress by remember { mutableFloatStateOf(0f) }
@@ -144,16 +152,21 @@ fun LockScreenOverlay(
             verticalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 48.dp, horizontal = 24.dp)
+                .padding(vertical = 32.dp, horizontal = 20.dp)
         ) {
-            // TOP SECTION: Status Badge & Hardware Volume Indicator
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // TOP SECTION: Status Badge, Hardware Volume Indicator, Live Timer & Latest Lap Card
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 440.dp)
+            ) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color(0x3300C2FF))
                         .border(1.dp, BrandCyan.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 7.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -173,14 +186,14 @@ fun LockScreenOverlay(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .background(Color(0x22FFFFFF))
-                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.VolumeUp,
@@ -190,22 +203,60 @@ fun LockScreenOverlay(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Physical Volume Keys Active",
+                        text = "Physical Volume Keys Active (Vol Down = Lap)",
                         color = BrandEmerald,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Faint live timer readout
                 Text(
                     text = "${timeParts.mainDisplay}${timeParts.fractionDisplay}",
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = Color.White.copy(alpha = 0.9f),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // LATEST LAP DISPLAY: Directly below running time
+                val latestLap = laps.firstOrNull()
+                val isBest = latestLap != null && latestLap.id == bestLap?.id && laps.size > 1
+                val isSlowest = latestLap != null && latestLap.id == slowestLap?.id && laps.size > 1
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "LATEST LAP",
+                        color = BrandCyan,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = if (laps.isNotEmpty()) "${laps.size} Total Laps" else "0 Laps",
+                        color = Color(0xFFA7B0C0),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                LockScreenLapCard(
+                    lap = latestLap,
+                    isBest = isBest,
+                    isSlowest = isSlowest,
+                    precisionMode = precisionMode
                 )
             }
 
@@ -333,3 +384,222 @@ fun LockScreenOverlay(
         }
     }
 }
+
+@Composable
+private fun LockScreenLapCard(
+    lap: Lap?,
+    isBest: Boolean,
+    isSlowest: Boolean,
+    precisionMode: PrecisionMode,
+    modifier: Modifier = Modifier
+) {
+    if (lap == null) {
+        // No laps recorded yet
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFF131D33).copy(alpha = 0.7f))
+                .border(1.dp, Color(0x3300C2FF), RoundedCornerShape(16.dp))
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .background(
+                                color = Color(0x2200C2FF),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Flag,
+                            contentDescription = "No Laps",
+                            tint = BrandCyan,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Text(
+                            text = "NO LAPS RECORDED",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Press Volume Down to record lap",
+                            color = Color(0xFFA7B0C0),
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+
+                Text(
+                    text = "--:--",
+                    color = Color(0x66FFFFFF),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    } else {
+        val cardBg = when {
+            isBest -> Color(0xFF0F2624)
+            isSlowest -> Color(0xFF261220)
+            else -> Color(0xFF131D33)
+        }
+
+        val borderBrush = when {
+            isBest -> Brush.horizontalGradient(listOf(BrandEmerald, BrandCyan))
+            isSlowest -> Brush.horizontalGradient(listOf(BrandPink, BrandPurple))
+            else -> Brush.linearGradient(
+                listOf(Color(0x5500C2FF), Color(0x336C5CE7))
+            )
+        }
+
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp), spotColor = Color(0x3300C2FF))
+                .clip(RoundedCornerShape(16.dp))
+                .background(cardBg)
+                .border(1.dp, borderBrush, RoundedCornerShape(16.dp))
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Left: Lap Number & Status Badge
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .background(
+                                brush = when {
+                                    isBest -> Brush.linearGradient(listOf(BrandEmerald, BrandCyan))
+                                    isSlowest -> Brush.linearGradient(listOf(BrandPink, BrandPurple))
+                                    else -> Brush.linearGradient(listOf(Color(0xFF19233A), Color(0xFF202E4C)))
+                                },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                    ) {
+                        Text(
+                            text = "%02d".format(lap.lapNumber),
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "LAP ${lap.lapNumber}",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            if (isBest) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(BrandEmerald)
+                                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "BEST",
+                                        color = Color.Black,
+                                        fontSize = 8.5.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                            } else if (isSlowest) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(BrandPink)
+                                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "SLOWEST",
+                                        color = Color.White,
+                                        fontSize = 8.5.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                            } else {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(Color(0x3300C2FF))
+                                        .border(0.5.dp, BrandCyan.copy(alpha = 0.6f), CircleShape)
+                                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "LATEST",
+                                        color = BrandCyan,
+                                        fontSize = 8.5.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        Text(
+                            text = "Total: ${TimeFormatter.format(lap.totalTimeMillis, precisionMode)}",
+                            color = Color(0xFFA7B0C0),
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+
+                // Right: Split Time & Delta Difference
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = TimeFormatter.format(lap.lapTimeMillis, precisionMode),
+                        color = if (isBest) BrandEmerald else Color.White,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    if (lap.diffFromPreviousMillis != 0L) {
+                        val isFaster = lap.diffFromPreviousMillis < 0
+                        Text(
+                            text = TimeFormatter.formatLapDifference(lap.diffFromPreviousMillis),
+                            color = if (isFaster) BrandEmerald else BrandPink,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+

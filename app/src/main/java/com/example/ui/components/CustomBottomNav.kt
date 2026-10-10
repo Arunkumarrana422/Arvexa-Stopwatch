@@ -1,11 +1,15 @@
 package com.example.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -124,12 +128,6 @@ fun CustomBottomNav(
                         label = "nav_width"
                     )
 
-                    val textAlpha by animateFloatAsState(
-                        targetValue = if (isSelected) 1f else 0f,
-                        animationSpec = tween(durationMillis = 180),
-                        label = "text_alpha"
-                    )
-
                     val iconTint by animateColorAsState(
                         targetValue = if (isSelected) Color.White else (if (isDark) Color(0xFF8E9BAE) else Color(0xFF64748B)),
                         animationSpec = tween(durationMillis = 200),
@@ -189,17 +187,36 @@ fun CustomBottomNav(
                                 }
                             }
 
-                            if (textAlpha > 0.05f) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = item.label,
-                                    color = Color.White.copy(alpha = textAlpha),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    modifier = Modifier.graphicsLayer(alpha = textAlpha)
+                            AnimatedVisibility(
+                                visible = isSelected,
+                                enter = fadeIn(animationSpec = tween(150)) + expandHorizontally(
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessMedium
+                                    ),
+                                    expandFrom = Alignment.Start
+                                ),
+                                exit = fadeOut(animationSpec = tween(150)) + shrinkHorizontally(
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessMedium
+                                    ),
+                                    shrinkTowards = Alignment.Start
                                 )
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = item.label,
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
                             }
                         }
                     }

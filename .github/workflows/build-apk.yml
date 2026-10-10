@@ -44,19 +44,9 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
-
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: ArvexaStopwatch-Release-v1.0.4
           path: app/build/outputs/apk/release/*.apk
-          retention-days: 14
-
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ArvexaStopwatch-Debug-v1.0.4
-          path: app/build/outputs/apk/debug/*.apk
           retention-days: 14

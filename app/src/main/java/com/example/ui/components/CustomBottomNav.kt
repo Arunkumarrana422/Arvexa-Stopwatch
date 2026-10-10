@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -116,8 +117,17 @@ fun CustomBottomNav(
                         targetValue = if (isSelected) {
                             if (item.label == "Settings") 120.dp else 98.dp
                         } else 46.dp,
-                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        ),
                         label = "nav_width"
+                    )
+
+                    val textAlpha by animateFloatAsState(
+                        targetValue = if (isSelected) 1f else 0f,
+                        animationSpec = tween(durationMillis = 180),
+                        label = "text_alpha"
                     )
 
                     val iconTint by animateColorAsState(
@@ -179,15 +189,16 @@ fun CustomBottomNav(
                                 }
                             }
 
-                            if (isSelected) {
+                            if (textAlpha > 0.05f) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = item.label,
-                                    color = Color.White,
+                                    color = Color.White.copy(alpha = textAlpha),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
-                                    softWrap = false
+                                    softWrap = false,
+                                    modifier = Modifier.graphicsLayer(alpha = textAlpha)
                                 )
                             }
                         }

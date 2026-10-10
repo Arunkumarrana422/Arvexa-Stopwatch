@@ -5,6 +5,8 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -140,25 +142,37 @@ fun RunStopApp(
                                 transitionSpec = {
                                     val targetIndex = targetState.ordinal
                                     val initialIndex = initialState.ordinal
-                                    val duration = 280
+                                    val duration = 300
                                     if (targetIndex > initialIndex) {
                                         (slideInHorizontally(
-                                            animationSpec = tween(duration, easing = FastOutSlowInEasing),
-                                            initialOffsetX = { it / 3 }
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                                stiffness = Spring.StiffnessMediumLow
+                                            ),
+                                            initialOffsetX = { it / 4 }
                                         ) + fadeIn(animationSpec = tween(duration))) togetherWith
                                                 (slideOutHorizontally(
-                                                    animationSpec = tween(duration, easing = FastOutSlowInEasing),
-                                                    targetOffsetX = { -it / 3 }
-                                                ) + fadeOut(animationSpec = tween(duration / 2)))
+                                                    animationSpec = spring(
+                                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                                        stiffness = Spring.StiffnessMediumLow
+                                                    ),
+                                                    targetOffsetX = { -it / 4 }
+                                                ) + fadeOut(animationSpec = tween(duration)))
                                     } else {
                                         (slideInHorizontally(
-                                            animationSpec = tween(duration, easing = FastOutSlowInEasing),
-                                            initialOffsetX = { -it / 3 }
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                                stiffness = Spring.StiffnessMediumLow
+                                            ),
+                                            initialOffsetX = { -it / 4 }
                                         ) + fadeIn(animationSpec = tween(duration))) togetherWith
                                                 (slideOutHorizontally(
-                                                    animationSpec = tween(duration, easing = FastOutSlowInEasing),
-                                                    targetOffsetX = { it / 3 }
-                                                ) + fadeOut(animationSpec = tween(duration / 2)))
+                                                    animationSpec = spring(
+                                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                                        stiffness = Spring.StiffnessMediumLow
+                                                    ),
+                                                    targetOffsetX = { it / 4 }
+                                                ) + fadeOut(animationSpec = tween(duration)))
                                     }
                                 },
                                 label = "screen_smooth_transition"

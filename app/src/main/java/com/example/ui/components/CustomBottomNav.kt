@@ -136,8 +136,8 @@ fun CustomBottomNav(
                                 brush = if (isSelected) {
                                     Brush.horizontalGradient(
                                         listOf(
-                                            BrandPurple.copy(alpha = 0.90f),
-                                            BrandCyan.copy(alpha = 0.90f)
+                                            BrandPurple.copy(alpha = 0.32f),
+                                            BrandCyan.copy(alpha = 0.32f)
                                         )
                                     )
                                 } else {

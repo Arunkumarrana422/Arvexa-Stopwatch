@@ -12,11 +12,14 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.input.pointer.pointerInput
+import com.example.util.HapticHelper
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -100,6 +103,36 @@ fun RunStopApp(
                             .fillMaxSize()
                             .background(brush = AppTheme.backgroundGradient)
                             .padding(innerPadding)
+                            .pointerInput(currentScreen) {
+                                var totalDrag = 0f
+                                detectHorizontalDragGestures(
+                                    onDragStart = { totalDrag = 0f },
+                                    onHorizontalDrag = { change, dragAmount ->
+                                        change.consume()
+                                        totalDrag += dragAmount
+                                    },
+                                    onDragEnd = {
+                                        if (currentScreen != AppScreen.ALL_WORKOUTS) {
+                                            val screens = listOf(
+                                                AppScreen.STOPWATCH,
+                                                AppScreen.LAPS,
+                                                AppScreen.STATS,
+                                                AppScreen.SETTINGS
+                                            )
+                                            val currentIndex = screens.indexOf(currentScreen)
+                                            if (currentIndex != -1) {
+                                                if (totalDrag < -50f && currentIndex < screens.size - 1) {
+                                                    HapticHelper.trigger(context, settings.hapticsEnabled, HapticHelper.HapticType.LIGHT)
+                                                    currentScreen = screens[currentIndex + 1]
+                                                } else if (totalDrag > 50f && currentIndex > 0) {
+                                                    HapticHelper.trigger(context, settings.hapticsEnabled, HapticHelper.HapticType.LIGHT)
+                                                    currentScreen = screens[currentIndex - 1]
+                                                }
+                                            }
+                                        }
+                                    }
+                                )
+                            }
                     ) {
                         if (settings.animationsEnabled) {
                             AnimatedContent(

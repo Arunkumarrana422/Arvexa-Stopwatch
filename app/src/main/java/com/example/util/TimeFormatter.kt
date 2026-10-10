@@ -36,8 +36,12 @@ object TimeFormatter {
             PrecisionMode.SECONDS -> ""
         }
 
-        val main = if (hours > 0) "$hStr:$mStr:$sStr" else "$mStr:$sStr"
-        val frac = if (fracStr.isNotEmpty()) ".$fracStr" else ""
+        val (main, frac) = if (hours > 0) {
+            Pair("$hStr:$mStr", ":$sStr")
+        } else {
+            val f = if (fracStr.isNotEmpty()) ".$fracStr" else ""
+            Pair("$mStr:$sStr", f)
+        }
 
         return FormattedTimeParts(
             hours = hStr,

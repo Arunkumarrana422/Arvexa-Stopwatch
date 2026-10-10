@@ -218,10 +218,18 @@ fun LockScreenOverlay(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Faint live timer readout
+                val isOverHour = (timeParts.hours.toIntOrNull() ?: 0) > 0
+                val lockScreenTimerText = if (isOverHour) {
+                    val frac = if (timeParts.fraction.isNotEmpty()) ".${timeParts.fraction}" else ""
+                    "${timeParts.hours}:${timeParts.minutes}:${timeParts.seconds}$frac"
+                } else {
+                    "${timeParts.mainDisplay}${timeParts.fractionDisplay}"
+                }
+
                 Text(
-                    text = "${timeParts.mainDisplay}${timeParts.fractionDisplay}",
+                    text = lockScreenTimerText,
                     color = Color.White.copy(alpha = 0.9f),
-                    fontSize = 30.sp,
+                    fontSize = if (isOverHour) 26.sp else 30.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
                 )

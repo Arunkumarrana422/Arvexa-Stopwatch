@@ -323,7 +323,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("About Arvexa Stopwatch", color = AppTheme.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        Text("v1.0.0 Pro", color = BrandCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("v1.0.4 Pro", color = BrandCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Row(
@@ -379,7 +379,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Version 1.0.0 Pro",
+                        text = "Version 1.0.4 Pro",
                         color = AppTheme.textSecondary,
                         fontSize = 11.sp
                     )

@@ -152,9 +152,9 @@ fun LockScreenOverlay(
             verticalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 32.dp, horizontal = 20.dp)
+                .padding(top = 48.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
         ) {
-            // TOP SECTION: Status Badge, Hardware Volume Indicator, Live Timer & Latest Lap Card
+            // TOP SECTION: Status Badge, Hardware Volume Indicator, Live Timer & Recent Lap Cards
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
@@ -210,23 +210,21 @@ fun LockScreenOverlay(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Faint live timer readout
                 Text(
                     text = "${timeParts.mainDisplay}${timeParts.fractionDisplay}",
                     color = Color.White.copy(alpha = 0.9f),
-                    fontSize = 32.sp,
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // LATEST LAP DISPLAY: Directly below running time
-                val latestLap = laps.firstOrNull()
-                val isBest = latestLap != null && latestLap.id == bestLap?.id && laps.size > 1
-                val isSlowest = latestLap != null && latestLap.id == slowestLap?.id && laps.size > 1
+                // RECENT LAPS DISPLAY: Top 3 latest laps, latest on top
+                val recentLaps = laps.take(3)
 
                 Row(
                     modifier = Modifier
@@ -236,14 +234,14 @@ fun LockScreenOverlay(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "LATEST LAP",
+                        text = if (recentLaps.isNotEmpty()) "RECENT LAPS (${laps.size})" else "LATEST LAP",
                         color = BrandCyan,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
                     )
                     Text(
-                        text = if (laps.isNotEmpty()) "${laps.size} Total Laps" else "0 Laps",
+                        text = if (laps.isNotEmpty()) "Latest on top" else "0 Laps",
                         color = Color(0xFFA7B0C0),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
@@ -252,12 +250,30 @@ fun LockScreenOverlay(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                LockScreenLapCard(
-                    lap = latestLap,
-                    isBest = isBest,
-                    isSlowest = isSlowest,
-                    precisionMode = precisionMode
-                )
+                if (recentLaps.isEmpty()) {
+                    LockScreenLapCard(
+                        lap = null,
+                        isBest = false,
+                        isSlowest = false,
+                        precisionMode = precisionMode
+                    )
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        recentLaps.forEach { lap ->
+                            val isBest = lap.id == bestLap?.id && laps.size > 1
+                            val isSlowest = lap.id == slowestLap?.id && laps.size > 1
+                            LockScreenLapCard(
+                                lap = lap,
+                                isBest = isBest,
+                                isSlowest = isSlowest,
+                                precisionMode = precisionMode
+                            )
+                        }
+                    }
+                }
             }
 
             // CENTER SECTION: 5-Second Hold-to-Unlock Button
@@ -544,23 +560,6 @@ private fun LockScreenLapCard(
                                     Text(
                                         text = "SLOWEST",
                                         color = Color.White,
-                                        fontSize = 8.5.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        letterSpacing = 0.5.sp
-                                    )
-                                }
-                            } else {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .background(Color(0x3300C2FF))
-                                        .border(0.5.dp, BrandCyan.copy(alpha = 0.6f), CircleShape)
-                                        .padding(horizontal = 7.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = "LATEST",
-                                        color = BrandCyan,
                                         fontSize = 8.5.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         letterSpacing = 0.5.sp

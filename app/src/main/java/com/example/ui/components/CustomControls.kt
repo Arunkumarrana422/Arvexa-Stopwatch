@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -9,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +29,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Icon
@@ -42,6 +45,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -60,6 +64,7 @@ import com.example.util.HapticHelper
 fun GlassCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 20.dp,
+    contentPadding: Dp = 16.dp,
     borderBrush: Brush? = null,
     backgroundColor: Color? = null,
     onClick: (() -> Unit)? = null,
@@ -98,7 +103,7 @@ fun GlassCard(
             .clickable(onClick = onClick)
             .background(finalBg)
             .border(1.dp, finalBorder, shape)
-            .padding(16.dp)
+            .padding(contentPadding)
     } else {
         modifier
             .shadow(
@@ -109,7 +114,7 @@ fun GlassCard(
             .clip(shape)
             .background(finalBg)
             .border(1.dp, finalBorder, shape)
-            .padding(16.dp)
+            .padding(contentPadding)
     }
 
     Box(modifier = boxModifier) {
@@ -146,6 +151,14 @@ fun ThemePillToggle(
 
     val iconColor = if (isDark) BrandCyan else Color(0xFFFF9800)
 
+    val thumbIcon = if (currentTheme == ThemeMode.SYSTEM) {
+        Icons.Default.BrightnessAuto
+    } else if (isDark) {
+        Icons.Default.DarkMode
+    } else {
+        Icons.Default.LightMode
+    }
+
     Box(
         modifier = modifier
             .size(width = 68.dp, height = 34.dp)
@@ -157,13 +170,19 @@ fun ThemePillToggle(
                 if (isDark) Color(0x4400C2FF) else Color(0x446C5CE7),
                 RoundedCornerShape(17.dp)
             )
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) {
-                HapticHelper.trigger(context, true, HapticHelper.HapticType.LIGHT)
-                val newMode = if (isDark) ThemeMode.LIGHT else ThemeMode.DARK
-                onThemeChanged(newMode)
+            .pointerInput(isDark, currentTheme) {
+                detectTapGestures(
+                    onTap = {
+                        HapticHelper.trigger(context, true, HapticHelper.HapticType.LIGHT)
+                        val newMode = if (isDark) ThemeMode.LIGHT else ThemeMode.DARK
+                        onThemeChanged(newMode)
+                    },
+                    onLongPress = {
+                        HapticHelper.trigger(context, true, HapticHelper.HapticType.SUCCESS)
+                        onThemeChanged(ThemeMode.SYSTEM)
+                        Toast.makeText(context, "System Theme", Toast.LENGTH_SHORT).show()
+                    }
+                )
             }
             .testTag("theme_pill_toggle"),
         contentAlignment = Alignment.CenterStart
@@ -186,8 +205,8 @@ fun ThemePillToggle(
                 )
         ) {
             Icon(
-                imageVector = if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
-                contentDescription = if (isDark) "Dark Mode" else "Light Mode",
+                imageVector = thumbIcon,
+                contentDescription = if (currentTheme == ThemeMode.SYSTEM) "System Mode" else (if (isDark) "Dark Mode" else "Light Mode"),
                 tint = iconColor,
                 modifier = Modifier
                     .size(15.dp)

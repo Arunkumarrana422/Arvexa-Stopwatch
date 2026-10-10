@@ -32,7 +32,7 @@ enum class VolumeAction(val label: String) {
 enum class ThemeMode(val label: String) {
     DARK("Dark"),
     LIGHT("Light"),
-    SYSTEM("Auto")
+    SYSTEM("System")
 }
 
 data class StopwatchSettings(

@@ -27,11 +27,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
@@ -119,12 +121,17 @@ fun StatsScreen(
     val longestSession = sessions.maxOfOrNull { it.durationMillis } ?: 0L
     val avgSessionDuration = if (totalSessions > 0) totalTimeMillis / totalSessions else 0L
 
-    LazyColumn(
-        contentPadding = PaddingValues(bottom = 12.dp),
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
+    Box(
+        contentAlignment = Alignment.TopCenter,
+        modifier = modifier.fillMaxSize()
     ) {
+        LazyColumn(
+            contentPadding = PaddingValues(bottom = 12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 600.dp)
+                .padding(horizontal = 16.dp)
+        ) {
         // HEADER
         item {
             Column(modifier = Modifier.padding(top = 16.dp, bottom = 12.dp)) {
@@ -230,7 +237,7 @@ fun StatsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "WORKOUT HISTORY (${sessions.size})",
+                    text = "WORKOUTS",
                     color = AppTheme.textPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
@@ -362,6 +369,7 @@ fun StatsScreen(
             }
         }
     }
+}
 
     // Confirmation Dialog for Clearing All Sessions
     if (showClearAllDialog) {
@@ -408,7 +416,8 @@ fun StatsScreen(
                 Text("Delete Workout?", fontWeight = FontWeight.Bold)
             },
             text = {
-                Text("Are you sure you want to delete '${session.title}'? This workout record will be permanently deleted.")
+                val displayTitle = if (session.title.startsWith("Run Session") || session.title.isBlank()) "Running Session" else session.title
+                Text("Are you sure you want to delete '$displayTitle'? This workout record will be permanently deleted.")
             },
             confirmButton = {
                 Button(
@@ -517,7 +526,7 @@ fun PaceCurveChartCard(
                     }
 
                     // Background Grid Lines
-                    val gridColor = if (isDark) Color(0x1AFFFFFF) else Color(0x1A000000)
+                    val gridColor = Color(0x1AFFFFFF)
                     for (i in 0..3) {
                         val y = (height / 3) * i
                         drawLine(
@@ -570,7 +579,7 @@ fun PaceCurveChartCard(
                             center = pt
                         )
                         drawCircle(
-                            color = if (isDark) Color.White else Color(0xFF0F172A),
+                            color = Color.White,
                             radius = 2.dp.toPx(),
                             center = pt
                         )
@@ -635,6 +644,20 @@ fun WorkoutSessionCard(
         if (session.bestLapMillis > 0) TimeFormatter.format(session.bestLapMillis, precisionMode) else ""
     }
 
+    val displayTitle = remember(session.title) {
+        if (session.title.isBlank() ||
+            session.title.startsWith("Run Session", ignoreCase = true) ||
+            session.title.startsWith("Run session", ignoreCase = true) ||
+            session.title.startsWith("Running Session", ignoreCase = true) ||
+            session.title.contains("Run Session", ignoreCase = true) ||
+            session.title.contains("Run session", ignoreCase = true)
+        ) {
+            "Running Session"
+        } else {
+            session.title
+        }
+    }
+
     GlassCard(
         modifier = modifier
             .fillMaxWidth()
@@ -656,10 +679,12 @@ fun WorkoutSessionCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = session.title,
+                        text = displayTitle,
                         color = AppTheme.textPrimary,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
@@ -667,66 +692,6 @@ fun WorkoutSessionCard(
                         color = AppTheme.textSecondary,
                         fontSize = 11.sp
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Duration Icon + Text
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Timer,
-                                contentDescription = "Duration",
-                                tint = BrandEmerald,
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = TimeFormatter.format(session.durationMillis, precisionMode),
-                                color = BrandEmerald,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        // Laps Icon + Text
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Flag,
-                                contentDescription = "Laps",
-                                tint = BrandCyan,
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${session.lapCount} Laps",
-                                color = BrandCyan,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-
-                        // Best Lap Trophy Icon + Text
-                        if (session.bestLapMillis > 0) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.EmojiEvents,
-                                    contentDescription = "Best Lap",
-                                    tint = GoldBestLap,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Best: $bestLapFormatted",
-                                    color = GoldBestLap,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
                 }
 
                 // Controls on the right: Chevron Expand/Collapse indicator + Delete Button
@@ -753,6 +718,71 @@ fun WorkoutSessionCard(
                 }
             }
 
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // STATS ROW: Duration, Laps, and Best Lap in 1 single clean line across full card width
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Duration Icon + Text
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Timer,
+                        contentDescription = "Duration",
+                        tint = BrandEmerald,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = TimeFormatter.format(session.durationMillis, precisionMode),
+                        color = BrandEmerald,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                }
+
+                // Laps Icon + Text
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Flag,
+                        contentDescription = "Laps",
+                        tint = BrandCyan,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${session.lapCount} Laps",
+                        color = BrandCyan,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1
+                    )
+                }
+
+                // Best Lap Trophy Icon + Text (In one single line, never wrapped)
+                if (session.bestLapMillis > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = "Best Lap",
+                            tint = GoldBestLap,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Best: $bestLapFormatted",
+                            color = GoldBestLap,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
             // EXPANDABLE LAP SPLITS SECTION
             AnimatedVisibility(
                 visible = expanded,
@@ -775,7 +805,7 @@ fun WorkoutSessionCard(
                         .padding(top = 12.dp)
                 ) {
                     HorizontalDivider(
-                        color = if (isDark) Color(0x22FFFFFF) else Color(0x18000000),
+                        color = Color(0x22FFFFFF),
                         thickness = 1.dp
                     )
 
@@ -833,9 +863,9 @@ fun WorkoutSessionCard(
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(
                                             if (isBest) {
-                                                if (isDark) Color(0x22FFB800) else Color(0x18FFB800)
+                                                Color(0x22FFB800)
                                             } else if (isAlternate) {
-                                                if (isDark) Color(0x12FFFFFF) else Color(0x0A000000)
+                                                Color(0x12FFFFFF)
                                             } else Color.Transparent
                                         )
                                         .padding(horizontal = 10.dp, vertical = 6.dp),
@@ -848,8 +878,7 @@ fun WorkoutSessionCard(
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .background(
                                                     if (isBest) Color(0x33FFB800)
-                                                    else if (isDark) Color(0x2200C2FF)
-                                                    else Color(0x1800C2FF)
+                                                    else Color(0x2200C2FF)
                                                 )
                                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                                         ) {

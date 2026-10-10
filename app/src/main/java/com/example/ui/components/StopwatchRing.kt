@@ -87,13 +87,13 @@ fun StopwatchRing(
         )
     )
 
-    val dialDiameter = size - 30.dp
+    val dialDiameter = size * 0.89f
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.size(size)
     ) {
-        // Watch dial circular surface with soft, elegant shadow in light mode
+        // Watch dial circular surface with adaptive light/dark styling
         Box(
             modifier = Modifier
                 .size(dialDiameter)
@@ -123,8 +123,9 @@ fun StopwatchRing(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val canvasSize = this.size.minDimension
             val center = Offset(this.size.width / 2f, this.size.height / 2f)
-            val radius = (canvasSize / 2f) - 18.dp.toPx()
-            val strokeWidth = 5.dp.toPx()
+            val strokeWidthDp = (size.value * 0.018f).coerceIn(3.5f, 5.5f)
+            val strokeWidth = strokeWidthDp.dp.toPx()
+            val radius = (canvasSize / 2f) - (size.value * 0.065f).dp.toPx()
             val arcSize = Size(radius * 2, radius * 2)
             val arcTopLeft = Offset(center.x - radius, center.y - radius)
 
@@ -138,18 +139,23 @@ fun StopwatchRing(
 
             // 2. Dial tick marks around perimeter (60 ticks for seconds)
             val tickCount = 60
+            val majorTickLength = (size.value * 0.032f).coerceIn(7f, 10f).dp.toPx()
+            val minorTickLength = (size.value * 0.015f).coerceIn(3f, 5f).dp.toPx()
+            val majorTickStroke = (size.value * 0.007f).coerceIn(1.8f, 2.4f).dp.toPx()
+            val minorTickStroke = (size.value * 0.004f).coerceIn(0.9f, 1.4f).dp.toPx()
+
             for (i in 0 until tickCount) {
                 val tickAngle = (i * (360f / tickCount)) * (PI / 180f).toFloat()
                 val isMajor = i % 5 == 0
-                val tickLength = if (isMajor) 9.dp.toPx() else 4.dp.toPx()
-                val tickStroke = if (isMajor) 2.dp.toPx() else 1.dp.toPx()
+                val tickLength = if (isMajor) majorTickLength else minorTickLength
+                val tickStroke = if (isMajor) majorTickStroke else minorTickStroke
                 val tickColor = if (isMajor) {
-                    if (isRunning) BrandCyan.copy(alpha = 0.85f) else (if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF475569))
+                    if (isRunning) BrandCyan.copy(alpha = 0.85f) else (if (isDark) Color.White.copy(alpha = 0.45f) else Color(0xFF475569))
                 } else {
                     if (isDark) Color.White.copy(alpha = 0.15f) else Color(0xFF0F172A).copy(alpha = 0.15f)
                 }
 
-                val innerR = radius - 10.dp.toPx()
+                val innerR = radius - (size.value * 0.032f).dp.toPx()
                 val outerR = innerR - tickLength
 
                 val startX = center.x + innerR * cos(tickAngle)

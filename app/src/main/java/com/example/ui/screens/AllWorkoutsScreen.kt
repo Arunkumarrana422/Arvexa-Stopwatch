@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -87,11 +88,16 @@ fun AllWorkoutsScreen(
 
     val totalTimeMillis = sessions.sumOf { it.durationMillis }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .testTag("all_workouts_screen")
+    Box(
+        contentAlignment = Alignment.TopCenter,
+        modifier = modifier.fillMaxSize()
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 600.dp)
+                .testTag("all_workouts_screen")
+        ) {
         // TOP APP BAR / HEADER
         Row(
             modifier = Modifier
@@ -116,9 +122,9 @@ fun AllWorkoutsScreen(
 
                 Column {
                     Text(
-                        text = "WORKOUT HISTORY",
+                        text = "WORKOUTS",
                         color = AppTheme.textPrimary,
-                        fontSize = 17.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp
                     )
@@ -188,7 +194,7 @@ fun AllWorkoutsScreen(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isDark) Color(0x2200E5FF) else Color(0x1500E5FF))
+                        .background(Color(0x2200E5FF))
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -221,7 +227,7 @@ fun AllWorkoutsScreen(
                     modifier = Modifier
                         .weight(1.3f)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isDark) Color(0x2210B981) else Color(0x1510B981))
+                        .background(Color(0x2210B981))
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -308,6 +314,7 @@ fun AllWorkoutsScreen(
             }
         }
     }
+}
 
     // Confirmation Dialog for Clearing All Sessions
     if (showClearAllDialog) {
@@ -354,7 +361,8 @@ fun AllWorkoutsScreen(
                 Text("Delete Workout?", fontWeight = FontWeight.Bold)
             },
             text = {
-                Text("Delete \"${session.title}\" (${TimeFormatter.formatDate(session.timestamp)})? This cannot be undone.")
+                val displayTitle = if (session.title.startsWith("Run Session") || session.title.isBlank()) "Running Session" else session.title
+                Text("Delete \"$displayTitle\" (${TimeFormatter.formatDate(session.timestamp)})? This cannot be undone.")
             },
             confirmButton = {
                 Button(

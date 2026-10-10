@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -75,71 +76,76 @@ fun SettingsScreen(
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
 
-    LazyColumn(
-        contentPadding = PaddingValues(bottom = 12.dp),
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
+    Box(
+        contentAlignment = Alignment.TopCenter,
+        modifier = modifier.fillMaxSize()
     ) {
-        // TOP HEADER
-        item {
-            Column(modifier = Modifier.padding(top = 16.dp, bottom = 12.dp)) {
-                Text(
-                    text = "SETTINGS",
-                    color = AppTheme.textPrimary,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.5.sp
-                )
-                Text(
-                    text = "Configure hardware buttons, timing, & style",
-                    color = BrandCyan,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-
-        // APPEARANCE (Dark / Light Mode)
-        item {
-            SettingsSectionHeader(title = "APPEARANCE & THEME", icon = Icons.Default.Palette, color = BrandCyan)
-            Spacer(modifier = Modifier.height(8.dp))
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Column {
-                        Text(
-                            text = "Theme Mode",
-                            color = AppTheme.textPrimary,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        CustomSegmentedPicker(
-                            options = ThemeMode.values().toList(),
-                            selectedOption = settings.themeMode,
-                            onOptionSelected = { settingsRepository.updateSettings(settings.copy(themeMode = it)) },
-                            labelProvider = { it.label },
-                            iconProvider = { mode ->
-                                when (mode) {
-                                    ThemeMode.DARK -> Icons.Default.DarkMode
-                                    ThemeMode.LIGHT -> Icons.Default.LightMode
-                                    ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
-                                }
-                            }
-                        )
-                    }
-
-                    SettingsToggleRow(
-                        title = "Smooth UI Animations",
-                        subtitle = "Ring animations, particle glows, & transitions",
-                        checked = settings.animationsEnabled,
-                        onCheckedChange = { settingsRepository.updateSettings(settings.copy(animationsEnabled = it)) },
-                        testTag = "toggle_animations"
+        LazyColumn(
+            contentPadding = PaddingValues(bottom = 12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 600.dp)
+                .padding(horizontal = 16.dp)
+        ) {
+            // TOP HEADER
+            item {
+                Column(modifier = Modifier.padding(top = 16.dp, bottom = 12.dp)) {
+                    Text(
+                        text = "SETTINGS",
+                        color = AppTheme.textPrimary,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.5.sp
+                    )
+                    Text(
+                        text = "Configure hardware buttons, timing, & style",
+                        color = BrandCyan,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
+
+            // APPEARANCE (Dark / Light Mode)
+            item {
+                SettingsSectionHeader(title = "APPEARANCE & THEME", icon = Icons.Default.Palette, color = BrandCyan)
+                Spacer(modifier = Modifier.height(8.dp))
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Column {
+                            Text(
+                                text = "Theme Mode",
+                                color = AppTheme.textPrimary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            CustomSegmentedPicker(
+                                options = ThemeMode.values().toList(),
+                                selectedOption = settings.themeMode,
+                                onOptionSelected = { settingsRepository.updateSettings(settings.copy(themeMode = it)) },
+                                labelProvider = { it.label },
+                                iconProvider = { mode ->
+                                    when (mode) {
+                                        ThemeMode.DARK -> Icons.Default.DarkMode
+                                        ThemeMode.LIGHT -> Icons.Default.LightMode
+                                        ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
+                                    }
+                                }
+                            )
+                        }
+
+                        SettingsToggleRow(
+                            title = "Smooth UI Animations",
+                            subtitle = "Ring animations, particle glows, & transitions",
+                            checked = settings.animationsEnabled,
+                            onCheckedChange = { settingsRepository.updateSettings(settings.copy(animationsEnabled = it)) },
+                            testTag = "toggle_animations"
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
         // STOPWATCH SECTION
         item {
@@ -335,6 +341,7 @@ fun SettingsScreen(
             }
         }
     }
+}
 
     // About Dialog
     if (showAboutDialog) {
@@ -631,15 +638,15 @@ fun SettingsToggleRow(
             Text(
                 text = title,
                 color = AppTheme.textPrimary,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(1.dp))
             Text(
                 text = subtitle,
                 color = AppTheme.textSecondary,
-                fontSize = 11.sp,
-                lineHeight = 15.sp
+                fontSize = 10.5.sp,
+                lineHeight = 14.sp
             )
         }
 

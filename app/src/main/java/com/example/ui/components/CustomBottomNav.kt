@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -80,16 +81,17 @@ fun CustomBottomNav(
             .fillMaxWidth()
             .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 12.dp)
     ) {
-        // Floating glassmorphic pill background
+        // Floating glassmorphic pill background (responsive on all display widths)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .widthIn(max = 480.dp)
                 .height(64.dp)
                 .shadow(
-                    elevation = if (isDark) 20.dp else 14.dp,
+                    elevation = if (isDark) 20.dp else 12.dp,
                     shape = RoundedCornerShape(32.dp),
                     spotColor = if (isDark) BrandPurple.copy(alpha = 0.5f) else Color(0x33000000),
-                    ambientColor = if (isDark) Color.Black else Color(0x22000000)
+                    ambientColor = if (isDark) Color.Black else Color(0x1F000000)
                 )
                 .clip(RoundedCornerShape(32.dp))
                 .background(AppTheme.bottomNavBg)
@@ -111,7 +113,9 @@ fun CustomBottomNav(
                     val isSelected = currentScreen == item.screen
 
                     val itemWidth by animateDpAsState(
-                        targetValue = if (isSelected) 96.dp else 50.dp,
+                        targetValue = if (isSelected) {
+                            if (item.label == "Settings") 120.dp else 98.dp
+                        } else 46.dp,
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                         label = "nav_width"
                     )
@@ -155,14 +159,14 @@ fun CustomBottomNav(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(horizontal = 10.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp)
                         ) {
                             Box(contentAlignment = Alignment.TopEnd) {
                                 Icon(
                                     imageVector = item.icon,
                                     contentDescription = item.label,
                                     tint = iconTint,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
 
                                 // Lap badge count
@@ -176,13 +180,14 @@ fun CustomBottomNav(
                             }
 
                             if (isSelected) {
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = item.label,
                                     color = Color.White,
-                                    fontSize = 12.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    maxLines = 1
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }

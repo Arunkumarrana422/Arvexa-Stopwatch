@@ -1,7 +1,9 @@
 package com.example.ui.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -22,8 +24,11 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,6 +38,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -56,6 +62,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
@@ -99,6 +106,7 @@ fun StopwatchScreen(
     onLockScreen: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val state by stopwatchManager.state.collectAsState()
     val elapsedMillis by stopwatchManager.elapsedMillis.collectAsState()
     val currentLapMillis by stopwatchManager.currentLapMillis.collectAsState()
@@ -106,12 +114,7 @@ fun StopwatchScreen(
     val bestLap by stopwatchManager.bestLap.collectAsState()
     val avgLapMillis by stopwatchManager.avgLapMillis.collectAsState()
 
-    // Retain previous laps/stats during exit animation so content smoothly collapses rather than snapping to empty
-    var previousLaps by remember { mutableStateOf<List<com.example.model.Lap>>(emptyList()) }
-    if (laps.isNotEmpty()) {
-        previousLaps = laps
-    }
-    val displayLaps = if (laps.isNotEmpty()) laps else previousLaps
+    // Retain previous stats during exit animation so content smoothly collapses rather than snapping to empty
 
     var previousBestLap by remember { mutableStateOf<com.example.model.Lap?>(null) }
     if (bestLap != null) {
@@ -142,203 +145,231 @@ fun StopwatchScreen(
         label = "status_dot_pulse"
     )
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-    ) {
-        // TOP BAR
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+    val scrollState = rememberScrollState()
+
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
+
+        val ringSize = when {
+            screenHeight < 620.dp || screenWidth < 340.dp -> 220.dp
+            screenHeight < 700.dp || screenWidth < 380.dp -> 248.dp
+            screenWidth > 600.dp -> 290.dp
+            else -> 270.dp
+        }
+
+        val timerMainFontSize = when {
+            ringSize <= 225.dp -> if (timeParts.hours.toInt() > 0) 28.sp else 36.sp
+            ringSize <= 250.dp -> if (timeParts.hours.toInt() > 0) 32.sp else 40.sp
+            else -> if (timeParts.hours.toInt() > 0) 36.sp else 46.sp
+        }
+
+        val timerFractionFontSize = when {
+            ringSize <= 225.dp -> 18.sp
+            ringSize <= 250.dp -> 20.sp
+            else -> 24.sp
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp, bottom = 8.dp)
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .widthIn(max = 600.dp)
+                .align(Alignment.TopCenter)
         ) {
-            // App Logo + Title (perfectly vertically aligned with logo height)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_app_logo),
-                    contentDescription = "Arvexa Stopwatch Icon",
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                )
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                Column(
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.height(38.dp)
-                ) {
-                    Text(
-                        text = "ARVEXA",
-                        color = AppTheme.textPrimary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 2.sp,
-                        style = TextStyle(
-                            platformStyle = PlatformTextStyle(
-                                includeFontPadding = false
-                            )
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "PRO STOPWATCH",
-                        color = BrandCyan,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.2.sp,
-                        style = TextStyle(
-                            platformStyle = PlatformTextStyle(
-                                includeFontPadding = false
-                            )
-                        )
-                    )
-                }
-            }
-
-            // Quick Theme Pill Switch + Settings Shortcut
+            // TOP BAR
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, bottom = 8.dp)
             ) {
-                // Pill-shaped Dark Mode toggle button
-                ThemePillToggle(
-                    currentTheme = themeMode,
-                    onThemeChanged = onThemeChanged
-                )
-
-                GlassIconButton(
-                    icon = Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    onClick = { onNavigateTo(AppScreen.SETTINGS) },
-                    size = 38.dp
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Live Status Badge
-        val statusColor = when (state) {
-            StopwatchState.RUNNING -> StatusRunning
-            StopwatchState.PAUSED -> StatusPaused
-            StopwatchState.IDLE -> if (isDark) Color(0xFF6B7280) else Color(0xFF94A3B8)
-        }
-        val statusText = when (state) {
-            StopwatchState.RUNNING -> "RUNNING"
-            StopwatchState.PAUSED -> "PAUSED"
-            StopwatchState.IDLE -> "READY"
-        }
-
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(if (isDark) Color(0xFF131B2E) else Color(0xFFFFFFFF))
-                .border(1.dp, statusColor.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                .padding(horizontal = 12.dp, vertical = 5.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .scale(if (state == StopwatchState.RUNNING) pulseScale else 1f)
-                        .background(statusColor, CircleShape)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = statusText,
-                    color = statusColor,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // CENTER STOPWATCH RING & MAIN TIMER
-        StopwatchRing(
-            elapsedMillis = elapsedMillis,
-            state = state,
-            size = 280.dp
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(16.dp)
-            ) {
-                // Status Subheading
-                Text(
-                    text = when (state) {
-                        StopwatchState.RUNNING -> "TIME ELAPSED"
-                        StopwatchState.PAUSED -> "TIMER PAUSED"
-                        StopwatchState.IDLE -> "TAP START"
-                    },
-                    color = AppTheme.textSecondary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.5.sp
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Giant Digital Timer
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = timeParts.mainDisplay,
-                        color = AppTheme.textPrimary,
-                        fontSize = if (timeParts.hours.toInt() > 0) 36.sp else 46.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.5).sp
+                // App Logo + Title (perfectly vertically aligned with logo height)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_app_logo),
+                        contentDescription = "Arvexa Stopwatch Icon",
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(10.dp))
                     )
-                    if (timeParts.fractionDisplay.isNotEmpty()) {
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Column(
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.height(38.dp)
+                    ) {
                         Text(
-                            text = timeParts.fractionDisplay,
+                            text = "ARVEXA",
+                            color = AppTheme.textPrimary,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 2.sp,
+                            style = TextStyle(
+                                platformStyle = PlatformTextStyle(
+                                    includeFontPadding = false
+                                )
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "PRO STOPWATCH",
                             color = BrandCyan,
-                            fontSize = 24.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            letterSpacing = 1.2.sp,
+                            style = TextStyle(
+                                platformStyle = PlatformTextStyle(
+                                    includeFontPadding = false
+                                )
+                            )
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Current Lap Live Sub-ticker
-                val lapNumber = laps.size + 1
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isDark) Color(0xFF111A2D) else Color(0xFFE9EEF7))
-                        .border(1.dp, Color(0x3300C2FF), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                // Quick Theme Pill Switch + Settings Shortcut
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    ThemePillToggle(
+                        currentTheme = themeMode,
+                        onThemeChanged = onThemeChanged
+                    )
+
+                    GlassIconButton(
+                        icon = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        onClick = { onNavigateTo(AppScreen.SETTINGS) },
+                        size = 38.dp,
+                        modifier = Modifier.testTag("btn_top_settings")
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Live Status Badge
+            val statusColor = when (state) {
+                StopwatchState.RUNNING -> StatusRunning
+                StopwatchState.PAUSED -> StatusPaused
+                StopwatchState.IDLE -> if (isDark) Color(0xFF6B7280) else Color(0xFF94A3B8)
+            }
+            val statusText = when (state) {
+                StopwatchState.RUNNING -> "RUNNING"
+                StopwatchState.PAUSED -> "PAUSED"
+                StopwatchState.IDLE -> "READY"
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (isDark) Color(0xFF131B2E) else Color(0xFFFFFFFF))
+                    .border(1.dp, statusColor.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .padding(horizontal = 12.dp, vertical = 5.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .scale(if (state == StopwatchState.RUNNING) pulseScale else 1f)
+                            .background(statusColor, CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = statusText,
+                        color = statusColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // CENTER STOPWATCH RING & MAIN TIMER (Dynamically adapts to display)
+            StopwatchRing(
+                elapsedMillis = elapsedMillis,
+                state = state,
+                size = ringSize
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(14.dp)
+                ) {
+                    // Status Subheading
+                    Text(
+                        text = when (state) {
+                            StopwatchState.RUNNING -> "TIME ELAPSED"
+                            StopwatchState.PAUSED -> "TIMER PAUSED"
+                            StopwatchState.IDLE -> "TAP START"
+                        },
+                        color = AppTheme.textSecondary,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.4.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    // Giant Digital Timer (Dynamically scaled)
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
                         Text(
-                            text = "LAP %02d".format(lapNumber),
-                            color = BrandEmerald,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "${lapParts.mainDisplay}${lapParts.fractionDisplay}",
+                            text = timeParts.mainDisplay,
                             color = AppTheme.textPrimary,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontSize = timerMainFontSize,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.5).sp
                         )
+                        if (timeParts.fractionDisplay.isNotEmpty()) {
+                            Text(
+                                text = timeParts.fractionDisplay,
+                                color = BrandCyan,
+                                fontSize = timerFractionFontSize,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(5.dp))
+
+                    // Current Lap Live Sub-ticker
+                    val lapNumber = laps.size + 1
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isDark) Color(0xFF111A2D) else Color(0xFFE9EEF7))
+                            .border(1.dp, Color(0x3300C2FF), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "LAP %02d".format(lapNumber),
+                                color = BrandEmerald,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "${lapParts.mainDisplay}${lapParts.fractionDisplay}",
+                                color = AppTheme.textPrimary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
-        }
 
         // QUICK STATS CHIPS (Best Lap & Avg Lap)
         AnimatedVisibility(
@@ -386,14 +417,16 @@ fun StopwatchScreen(
                                     color = GoldBestLap,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.8.sp
+                                    letterSpacing = 0.8.sp,
+                                    maxLines = 1
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = displayBestLap?.let { TimeFormatter.format(it.lapTimeMillis, precisionMode) } ?: "--:--",
                                     color = AppTheme.textPrimary,
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
                                 )
                             }
                             Icon(
@@ -483,7 +516,14 @@ fun StopwatchScreen(
                         text = "LAP",
                         icon = Icons.Default.Flag,
                         gradient = Brush.horizontalGradient(listOf(BrandPurple, BrandCyan)),
-                        onClick = { stopwatchManager.recordLap() },
+                        onClick = {
+                            val isFirstLap = laps.isEmpty()
+                            stopwatchManager.recordLap()
+                            if (isFirstLap) {
+                                Toast.makeText(context, "Lap 1 recorded! Viewing Laps", Toast.LENGTH_SHORT).show()
+                                onNavigateTo(AppScreen.LAPS)
+                            }
+                        },
                         testTag = "action_lap_button"
                     )
                 } else if (state == StopwatchState.PAUSED) {
@@ -556,109 +596,9 @@ fun StopwatchScreen(
             }
         }
 
-        // RECENT LAPS QUICK GLANCE (SHOWS 4 LAPS, ROUNDED RIPPLE EFFECT)
-        AnimatedVisibility(
-            visible = laps.isNotEmpty(),
-            enter = fadeIn(animationSpec = tween(350, easing = FastOutSlowInEasing)) + expandVertically(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                ),
-                expandFrom = Alignment.Top
-            ),
-            exit = fadeOut(animationSpec = tween(280, easing = FastOutSlowInEasing)) + shrinkVertically(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                ),
-                shrinkTowards = Alignment.Top
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp)
-            ) {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    onClick = { onNavigateTo(AppScreen.LAPS) }
-                ) {
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "RECENT LAPS (${displayLaps.size})",
-                                color = AppTheme.textSecondary,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
-                            )
-                            Text(
-                                text = "View All",
-                                color = BrandCyan,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Exactly 4 recent laps displayed
-                        val latestLaps = displayLaps.take(4)
-                        latestLaps.forEach { lap ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 3.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier
-                                            .size(22.dp)
-                                            .background(
-                                                if (isDark) Color(0xFF182238) else Color(0xFFE2E8F0),
-                                                CircleShape
-                                            )
-                                    ) {
-                                        Text(
-                                            text = "#${lap.lapNumber}",
-                                            color = AppTheme.textPrimary,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = TimeFormatter.format(lap.lapTimeMillis, precisionMode),
-                                        color = AppTheme.textPrimary,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-
-                                if (lap.diffFromPreviousMillis != 0L) {
-                                    val isFaster = lap.diffFromPreviousMillis < 0
-                                    Text(
-                                        text = TimeFormatter.formatLapDifference(lap.diffFromPreviousMillis),
-                                        color = if (isFaster) BrandEmerald else BrandPink,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(28.dp))
     }
+}
 
     // Confirmation Dialog for Resetting Stopwatch
     if (showResetDialog) {

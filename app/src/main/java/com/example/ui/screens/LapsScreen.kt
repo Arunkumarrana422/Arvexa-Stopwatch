@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -85,11 +86,16 @@ fun LapsScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
+    Box(
+        contentAlignment = Alignment.TopCenter,
+        modifier = modifier.fillMaxSize()
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 600.dp)
+                .padding(horizontal = 16.dp)
+        ) {
         // TOP HEADER
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -155,83 +161,112 @@ fun LapsScreen(
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Best Lap
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.EmojiEvents,
-                                contentDescription = "Best",
-                                tint = GoldBestLap,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("BEST", color = GoldBestLap, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
+                    // Best Lap in 1 single line
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = "Best",
+                            tint = GoldBestLap,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "BEST",
+                            color = GoldBestLap,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = bestLap?.let { TimeFormatter.format(it.lapTimeMillis, precisionMode) } ?: "--:--",
                             color = AppTheme.textPrimary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = bestLap?.let { "Lap ${it.lapNumber}" } ?: "",
-                            color = AppTheme.textSecondary,
-                            fontSize = 10.sp
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
 
-                    // Average Lap
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Speed,
-                                contentDescription = "Avg",
-                                tint = BrandCyan,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("AVERAGE", color = BrandCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
+                    // Divider
+                    Box(
+                        modifier = Modifier
+                            .height(14.dp)
+                            .width(1.dp)
+                            .background(if (isDark) Color(0x33FFFFFF) else Color(0x22000000))
+                    )
+
+                    // Average Lap in 1 single line
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Speed,
+                            contentDescription = "Avg",
+                            tint = BrandCyan,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "AVG",
+                            color = BrandCyan,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = if (avgLapMillis > 0) TimeFormatter.format(avgLapMillis, precisionMode) else "--:--",
                             color = AppTheme.textPrimary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${laps.size} splits",
-                            color = AppTheme.textSecondary,
-                            fontSize = 10.sp
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
 
-                    // Slowest Lap
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Flag,
-                                contentDescription = "Slowest",
-                                tint = BrandPink,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("SLOWEST", color = BrandPink, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
+                    // Divider
+                    Box(
+                        modifier = Modifier
+                            .height(14.dp)
+                            .width(1.dp)
+                            .background(if (isDark) Color(0x33FFFFFF) else Color(0x22000000))
+                    )
+
+                    // Slowest Lap in 1 single line
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Flag,
+                            contentDescription = "Slowest",
+                            tint = BrandPink,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "SLOW",
+                            color = BrandPink,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = slowestLap?.let { TimeFormatter.format(it.lapTimeMillis, precisionMode) } ?: "--:--",
                             color = AppTheme.textPrimary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = slowestLap?.let { "Lap ${it.lapNumber}" } ?: "",
-                            color = AppTheme.textSecondary,
-                            fontSize = 10.sp
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
                 }
@@ -306,6 +341,7 @@ fun LapsScreen(
             }
         }
     }
+}
 
     // Confirmation Dialog for Clearing Laps
     if (showClearDialog) {

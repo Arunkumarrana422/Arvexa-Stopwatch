@@ -99,12 +99,27 @@ object LapPdfGenerator {
             precisionMode = precisionMode
         ) ?: return
 
+        val cleanTitle = normalizeSessionTitle(session.title)
         sharePdfFile(
             context = context,
             pdfFile = pdfFile,
-            subject = "Arvexa Stopwatch • ${session.title}",
-            message = "Here is the official Arvexa Stopwatch report for \"${session.title}\" attached as a PDF."
+            subject = "Arvexa Stopwatch • $cleanTitle",
+            message = "Here is the official Arvexa Stopwatch report for \"$cleanTitle\" attached as a PDF."
         )
+    }
+
+    private fun normalizeSessionTitle(rawTitle: String): String {
+        return if (rawTitle.isBlank() ||
+            rawTitle.startsWith("Run Session", ignoreCase = true) ||
+            rawTitle.startsWith("Run session", ignoreCase = true) ||
+            rawTitle.startsWith("Running Session", ignoreCase = true) ||
+            rawTitle.contains("Run Session", ignoreCase = true) ||
+            rawTitle.contains("Run session", ignoreCase = true)
+        ) {
+            "Running Session"
+        } else {
+            rawTitle
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -444,10 +459,12 @@ object LapPdfGenerator {
                     typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
                     color = 0xFF0F172A.toInt()
                 }
-                val titleDisplay = if (session.title.length > 50) session.title.take(47) + "..." else session.title
+                val cleanTitle = normalizeSessionTitle(session.title)
+                val titleDisplay = if (cleanTitle.length > 50) cleanTitle.take(47) + "..." else cleanTitle
                 canvas.drawText("SESSION LAPS: $titleDisplay", MARGIN_X, 202f, textPaint)
                 currentY = 210f
             } else {
+                val cleanTitle = normalizeSessionTitle(session.title)
                 drawCompactHeader(
                     canvas = canvas,
                     fillPaint = fillPaint,
@@ -455,7 +472,7 @@ object LapPdfGenerator {
                     pageNum = pageNum,
                     totalPages = totalPages,
                     dateStr = sessionDateStr,
-                    titleText = "ARVEXA STOPWATCH • ${session.title}"
+                    titleText = "ARVEXA STOPWATCH • $cleanTitle"
                 )
                 currentY = 56f
             }
@@ -1005,7 +1022,8 @@ object LapPdfGenerator {
             typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
             color = 0xFF0F172A.toInt()
         }
-        val safeTitle = if (session.title.length > 28) session.title.take(25) + "..." else session.title
+        val cleanTitle = normalizeSessionTitle(session.title)
+        val safeTitle = if (cleanTitle.length > 28) cleanTitle.take(25) + "..." else cleanTitle
         canvas.drawText(safeTitle, MARGIN_X + 45f, y + 12f, textPaint)
 
         textPaint.apply {

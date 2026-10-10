@@ -212,7 +212,7 @@ class StopwatchManager private constructor(private val appContext: Context) {
         val worst = _slowestLap.value?.lapTimeMillis ?: 0L
         val avg = _avgLapMillis.value
 
-        val title = sessionTitle ?: "Run Session • ${TimeFormatter.formatDate(sessionStartTimeEpoch)}"
+        val title = sessionTitle ?: "Running Session"
 
         if (totalTime > 1000) {
             scope.launch(Dispatchers.IO) {

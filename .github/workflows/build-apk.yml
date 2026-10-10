@@ -16,12 +16,15 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Restore Debug Keystore
+      - name: Restore Keystores
         run: |
           if [ -f "debug.keystore.base64" ]; then
             base64 -d debug.keystore.base64 > debug.keystore
           elif [ ! -f "debug.keystore" ]; then
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          if [ -f "my-upload-key.jks.base64" ]; then
+            base64 -d my-upload-key.jks.base64 > my-upload-key.jks
           fi
 
       - name: Set up JDK 21
@@ -38,12 +41,22 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --stacktrace
+
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: ArvexaStopwatch-Debug-APK
+          name: ArvexaStopwatch-Release-v1.0.4
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 14
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArvexaStopwatch-Debug-v1.0.4
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14

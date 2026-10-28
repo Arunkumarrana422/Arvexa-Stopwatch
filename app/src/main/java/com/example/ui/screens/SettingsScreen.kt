@@ -20,11 +20,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.BrightnessAuto
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Notifications
@@ -37,6 +49,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -667,56 +681,141 @@ fun VolumeActionSelector(
     var expanded by remember { mutableStateOf(false) }
     val isDark = AppTheme.isDark
 
-    Column {
-        Text(
-            text = title,
-            color = AppTheme.textPrimary,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium
-        )
-        Spacer(modifier = Modifier.height(6.dp))
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "arrowRotation"
+    )
 
-        Box(
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isDark) Color(0xFF0F1726) else Color(0xFFF1F5F9))
+            .border(
+                width = 1.dp,
+                color = if (expanded) {
+                    if (isDark) BrandCyan else BrandPurple
+                } else {
+                    if (isDark) Color(0x3300C2FF) else Color(0x336C5CE7)
+                },
+                shape = RoundedCornerShape(12.dp)
+            )
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            )
+    ) {
+        // HEADER ROW (clickable to expand/collapse)
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(if (isDark) Color(0xFF0F1726) else Color(0xFFF1F5F9))
-                .border(1.dp, if (isDark) Color(0x3300C2FF) else Color(0x336C5CE7), RoundedCornerShape(12.dp))
-                .clickable { expanded = true }
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Column {
+                Text(
+                    text = title,
+                    color = AppTheme.textPrimary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = selectedAction.label,
                     color = if (isDark) BrandCyan else BrandPurple,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Text("▼", color = AppTheme.textSecondary, fontSize = 10.sp)
             }
 
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.background(if (isDark) Color(0xFF131D33) else Color(0xFFFFFFFF))
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse options" else "Expand options",
+                tint = if (expanded) (if (isDark) BrandCyan else BrandPurple) else AppTheme.textSecondary,
+                modifier = Modifier
+                    .size(22.dp)
+                    .rotate(arrowRotation)
+            )
+        }
+
+        // EXPANDABLE PANEL CONTENT
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(animationSpec = tween(200)) + expandVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ),
+            exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 10.dp, end = 10.dp, bottom = 10.dp, top = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                HorizontalDivider(
+                    color = if (isDark) Color(0x22FFFFFF) else Color(0x15000000),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+
                 VolumeAction.values().forEach { action ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                action.label,
-                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                    val isSelected = (action == selectedAction)
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (isSelected) {
+                                    if (isDark) Color(0x2200C2FF) else Color(0x226C5CE7)
+                                } else {
+                                    Color.Transparent
+                                }
                             )
-                        },
-                        onClick = {
-                            onActionSelected(action)
-                            expanded = false
+                            .clickable {
+                                onActionSelected(action)
+                                expanded = false
+                            }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = action.label,
+                            color = if (isSelected) {
+                                if (isDark) BrandCyan else BrandPurple
+                            } else {
+                                AppTheme.textPrimary
+                            },
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Selected",
+                                tint = if (isDark) BrandCyan else BrandPurple,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
-                    )
+                    }
                 }
             }
         }

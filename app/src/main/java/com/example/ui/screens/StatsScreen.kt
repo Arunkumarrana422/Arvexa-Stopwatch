@@ -77,6 +77,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import com.example.data.AppDatabase
 import com.example.model.PrecisionMode
 import com.example.model.WorkoutSession
@@ -846,10 +850,30 @@ fun WorkoutSessionCard(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     if (lapsList.isNotEmpty()) {
+                        val stopParentScrollConnection = remember {
+                            object : NestedScrollConnection {
+                                override fun onPostScroll(
+                                    consumed: Offset,
+                                    available: Offset,
+                                    source: NestedScrollSource
+                                ): Offset {
+                                    return Offset(0f, available.y)
+                                }
+
+                                override suspend fun onPostFling(
+                                    consumed: Velocity,
+                                    available: Velocity
+                                ): Velocity {
+                                    return Velocity(0f, available.y)
+                                }
+                            }
+                        }
+
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 280.dp)
+                                .heightIn(max = 240.dp)
+                                .nestedScroll(stopParentScrollConnection)
                                 .verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
